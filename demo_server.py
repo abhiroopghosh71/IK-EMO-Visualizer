@@ -51,7 +51,7 @@ def get_current_gen_data(selected_gen):
 sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 sup = str.maketrans("0123456789.-", "⁰¹²³⁴⁵⁶⁷⁸⁹⋅⁻")
 sub_ij = str.maketrans("ij", "ᵢⱼ")
-# play_icon = '\u25B6'
+# PLAY_ICON = '\u25B6'
 play_icon = '\u23F5'
 stop_icon = "\u23F9"
 pause_icon = '\u23F8'

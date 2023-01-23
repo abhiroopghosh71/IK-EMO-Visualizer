@@ -9,6 +9,7 @@ import numpy as np
 
 # This is a very specific way of implementing a query-based system. Ideally, we should have some OOP-based function
 # where user defines the results returned by a list of mandatory queries (keys of the QUERY dict).
+
 QUERY = {'N_OBJ': 'n_obj',
          'N_VAR': 'n_var',
          'X_MIN': 'xl',
