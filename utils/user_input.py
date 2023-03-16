@@ -11,7 +11,7 @@ def get_argparser(description='Optimization problem', n_var=None):
     parser.add_argument("--port", type=int, default=8050, help="Port to host the dash server")
     parser.add_argument("--special-flag", type=str, default=None,
                         help="Any special flag to be passed to the viz portal")
-    parser.add_argument("--run-mode", type=str, default='single-input',
+    parser.add_argument("--app-mode", type=str, default='single-input',
                         help="Choose whether to start IK-EMO Visualizer in single-input mode or interactive mode")
 
     return parser

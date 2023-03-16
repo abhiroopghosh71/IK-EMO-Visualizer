@@ -104,7 +104,7 @@ config_heatmap = {"toImageButtonOptions": {"width": None, "height": None, "forma
 prob_options = [{'label': 'Truss', 'value': 'Truss'}, {'label': 'OPF', 'value': 'OPF'}]
 
 # Define HTML layout
-app.layout = html.Div(construct_layout(args, gen_arr, query, interaction_mode=None))
+app.layout = html.Div(construct_layout(args, gen_arr, query))
 
 
 @app.callback(Output('confirm-write', 'displayed'),

@@ -17,7 +17,8 @@ REFRESH_ICON = '\u21BA'
 SAVE_ICON = '\U0001F4BE'
 
 
-def construct_layout(args, gen_arr, query, interaction_mode):
+def construct_layout(args, gen_arr, query):
+    app_mode = args.app_mode
     default_pause_play_icon = PAUSE_ICON
     if os.path.exists(os.path.join(args.result_path, '.pauserun')):
         default_pause_play_icon = PLAY_ICON
@@ -36,22 +37,40 @@ def construct_layout(args, gen_arr, query, interaction_mode):
                    # 'position': 'sticky', "top": '0'
                    },
         ),
+        ]
+
+    optim_control_title = "IK-EMO Controls (disabled)"
+    optim_control_disabled = True
+    pause_play_hover_text = "Available in a future release"
+    refresh_hover_text = "Available in a future release"
+    save_hover_text = "Available in a future release"
+    if app_mode == 'interactive':
+        optim_control_disabled = False
+        optim_control_title = "IK-EMO Controls"
+        pause_play_hover_text = "Pause/continue run"
+        refresh_hover_text = "Update data"
+        save_hover_text = "Save changes"
+
+    html_layout += [
         # Optimization controls
         html.Div([
-            html.Div([html.H2(children='IK-EMO Controls', className='widgetTitle')],
-                     style={'color': '#3C4B64', 'width': '20%', 'font-weight': 'normal', 'display': 'inline-block',
+            html.Div([html.H2(children=optim_control_title, className='widgetTitle')],
+                     style={'color': '#3C4B64', 'width': '25%', 'font-weight': 'normal', 'display': 'inline-block',
                             'vertical-align': 'middle'}),
 
             html.Div([
                 html.Div([
                     html.Button(default_pause_play_icon, id='pause-continue-optimization', className="button3",
-                                title="Pause/continue run",
+                                disabled=optim_control_disabled,
+                                title=pause_play_hover_text,
                                 style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
                                        'font-size': '30px', 'border': 'none'}),
-                    html.Button(REFRESH_ICON, id='refresh-data', className='button', title="Update data",
+                    html.Button(REFRESH_ICON, id='refresh-data', className='button', title=refresh_hover_text,
+                                disabled=optim_control_disabled,
                                 style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
                                        'font-size': '40px', 'border': 'none'}),
-                    html.Button(SAVE_ICON, id='save-data', className='button', title="Save changes",
+                    html.Button(SAVE_ICON, id='save-data', className='button', title=save_hover_text,
+                                disabled=optim_control_disabled,
                                 style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
                                        'font-size': '25px', 'border': 'none'}),
                     dcc.ConfirmDialog(id='confirm-write',
@@ -74,7 +93,7 @@ def construct_layout(args, gen_arr, query, interaction_mode):
                     # )
                 # ], style={'display': 'inline-block', 'width': '15%', 'vertical-align': 'middle'}),
 
-            ], style={'width': '80%', 'display': 'inline-block'}
+            ], style={'width': '70%', 'display': 'inline-block'}
             )
         ],
             style={'width': '95.5%', 'display': 'inline-block', 'vertical-align': 'middle',
@@ -83,7 +102,9 @@ def construct_layout(args, gen_arr, query, interaction_mode):
                    'margin': '0px 0px 20px 20px',
                    'background-color': 'white'}
         ),
+    ]
 
+    html_layout += [
         html.Div([
             # Historical data
             html.Div([
