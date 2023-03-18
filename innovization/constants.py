@@ -1,0 +1,23 @@
+NO_RELATION = 0
+INEQUALITY_UNKNOWN = 1
+LESS_THAN = 2
+GREATER_THAN = 3
+LESS_THAN_OR_EQUAL = 4
+GREATER_THAN_OR_EQUAL = 5
+EQUAL = 6
+POWER_LAW_UNKNOWN = 7
+POWER_LAW = 8
+
+POWER_LAW_STR = 'power_law'
+INEQUALITY_RULE_STR = 'inequality'
+CONSTANT_RULE_STR = 'constant'
+POWER_LAW_INEQUALITY_STR = 'power_law_inequality'
+
+sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+sup = str.maketrans("0123456789.-", "⁰¹²³⁴⁵⁶⁷⁸⁹⋅⁻")
+
+OUT_EDGE = 1
+IN_EDGE = -1
+
+HUMAN_DM = 0
+ARTIFICIAL_DM = 1
