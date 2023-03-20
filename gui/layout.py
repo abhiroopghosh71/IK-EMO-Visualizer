@@ -27,7 +27,7 @@ def construct_layout(args, gen_arr, query):
     config_heatmap = {"toImageButtonOptions": {"width": None, "height": None, "format": 'svg'}, 'editable': True}
     html_layout = [
         html.Div([
-            html.H1(children='IK-EMO Visualizer v1.0', style={'font-weight': 'normal'}),
+            html.H1(children='IK-EMO Visualizer v0.1', style={'font-weight': 'normal'}),
         ],
             style={'padding': '30px 0px 20px 0px', 'background-color': '#5F4F93',  # '#059862',
                    'margin': '0px 0px 20px 0px',
@@ -106,32 +106,6 @@ def construct_layout(args, gen_arr, query):
 
     html_layout += [
         html.Div([
-            # Historical data
-            html.Div([
-                html.Div([
-                    html.Div([
-                        html.H2(children='Optimization progress', id='hv-evolution-heading',
-                                style={'display': 'inline-block'}, className='widgetTitle'),
-                        dcc.Interval(id='optim-progress-update-interval',
-                                     interval=20 * 1000,  # in milliseconds
-                                     n_intervals=0),
-                        html.Div([
-                            html.Div([], className='circle--outer'),
-                            html.Div([], className='circle--inner'),
-                        ], className="video__icon", style={'display': 'inline-block'}),
-                    ]),
-                    html.Div([
-                        dcc.Graph(id='hv-evolution-graph', figure=get_hv_fig(update_hv_progress(gen_arr, query),
-                                                                             query.get(QUERY['MAX_ITER'])),
-                                  hoverData={'points': [{'customdata': ''}]}, config=config,
-                                  style={'width': '100%'})
-                    ], style={'width': '100%', 'padding-top': '20px'})
-                ], style={'width': '100%', 'display': 'inline-block', 'padding': '0 0 0 20px'})
-            ], style={'width': '29%', 'display': 'inline-block', 'float': 'center',
-                      'padding': '20px 20px 20px 20px',
-                      'vertical-align': 'top', 'background-color': 'white',
-                      'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 0px 20px 20px',
-                      'overflow': 'scroll', 'height': '83%'}),
             html.Div([
                 html.Div([html.H2(children='Scatter plot', id='scatter-heading', className='widgetTitle',
                                   style={'display': 'inline-block', 'width': '50%'}),
@@ -234,6 +208,33 @@ def construct_layout(args, gen_arr, query):
             ], style={'width': '30%', 'display': 'inline-block', 'float': 'center', 'padding': '20px 20px 20px 20px',
                       'vertical-align': 'top', 'background-color': 'white',
                       'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 20px 20px 0px',
+                      'overflow': 'scroll', 'height': '83%'}),
+
+            # Historical data
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H2(children='Optimization progress', id='hv-evolution-heading',
+                                style={'display': 'inline-block'}, className='widgetTitle'),
+                        dcc.Interval(id='optim-progress-update-interval',
+                                     interval=20 * 1000,  # in milliseconds
+                                     n_intervals=0),
+                        html.Div([
+                            html.Div([], className='circle--outer'),
+                            html.Div([], className='circle--inner'),
+                        ], className="video__icon", style={'display': 'inline-block'}),
+                    ]),
+                    html.Div([
+                        dcc.Graph(id='hv-evolution-graph', figure=get_hv_fig(update_hv_progress(gen_arr, query),
+                                                                             query.get(QUERY['MAX_ITER'])),
+                                  hoverData={'points': [{'customdata': ''}]}, config=config,
+                                  style={'width': '100%'})
+                    ], style={'width': '100%', 'padding-top': '20px'})
+                ], style={'width': '100%', 'display': 'inline-block', 'padding': '0 0 0 20px'})
+            ], style={'width': '29%', 'display': 'inline-block', 'float': 'center',
+                      'padding': '20px 20px 20px 20px',
+                      'vertical-align': 'top', 'background-color': 'white',
+                      'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 0px 20px 20px',
                       'overflow': 'scroll', 'height': '83%'}),
 
 
@@ -587,8 +588,18 @@ def update_hv_progress(gen_list, query):
 
 def get_current_gen_data(selected_gen, gen_arr, query):
     all_gen_val = gen_arr
-    nearest_gen_value = int(all_gen_val[np.abs(all_gen_val - selected_gen).argmin()])
-    obj_label = query.get(QUERY['OBJ_LABELS'])
-    obj, x, rank, constr = query.get_iter_data(nearest_gen_value, 'F', 'X', 'rank', 'G')
+    # Original begin
+    # nearest_gen_value = int(all_gen_val[np.abs(all_gen_val - selected_gen).argmin()])
+    # obj_label = query.get(QUERY['OBJ_LABELS'])
+    # obj, x, rank, constr = query.get_iter_data(nearest_gen_value, 'F', 'X', 'rank', 'G')
+    # Original end
+    nearest_gen_value = gen_arr[0]
+    x = query.get('X')
+    obj = query.get('F')
+    # constr = query.get('G')
+    constr = np.zeros_like(x)
+    # rank = query.get('rank')
+    rank = np.zeros(x.shape[0])
+    obj_label = query.get('obj_label')
 
     return nearest_gen_value, x, obj, constr, rank, obj_label

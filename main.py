@@ -21,7 +21,7 @@ from innovization.vrg_innovization import VRGInnovization
 from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
     POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
 # from utils.general import get_repair_agent
-from query import DemoQuery, QUERY
+from query import DemoQuery, QUERY, CSVQuery
 
 from utils.file_io import open_file_selection_dialog
 from utils.user_input import get_argparser
@@ -52,7 +52,11 @@ temp_path = os.path.join(temp_dir, 'optim_state_temp.hdf5')
 hdf_file = hdf_file_original
 gen_arr, latest_innov_gen_key, latest_innov_gen, xl, xu, ignore_vars = [], None, None, [], [], []
 
-query = DemoQuery(args.result_path)
+if args.X_file is not None:
+    query = CSVQuery(x_file=os.path.join('data', 'X.DAT'), f_file=os.path.join('data', 'F.DAT'),
+                     param_file=os.path.join('data', 'params.DAT'))
+else:
+    query = DemoQuery(args.result_path)
 max_gen = query.get(QUERY['MAX_ITER'])
 
 
@@ -291,12 +295,15 @@ def get_innovization(current_gen, data_arr, const_tol, rerun=False):
     else:
         var_groups = []
         with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
-            current_gen_data = hf[f'gen{current_gen}']
-            for key in current_gen_data.keys():
-                if 'var_groups' in key:
-                    var_groups.append(np.array(current_gen_data[key]))
+            # Original begin
+            # current_gen_data = hf[f'gen{current_gen}']
+            # for key in current_gen_data.keys():
+            #     if 'var_groups' in key:
+            #         var_groups.append(np.array(current_gen_data[key]))
+            # Original end
+            var_groups = []
         innov = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
-                                xl=xl, xu=xu, power_law_normalized=True, agent_names=['power_law_rep_sig_0'])
+                                xl=np.array(xl), xu=np.array(xu), power_law_normalized=True, agent_names=['power_law_rep_sig_0'])
         innov.learn(data_arr)
         # These innovization rules are learned just now. So write them to the results folder with a '_post' suffix
         with open(innov_file_post, 'wb') as fp:
