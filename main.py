@@ -286,22 +286,23 @@ def get_innovization(current_gen, data_arr, const_tol, rerun=False):
     # For the generations where power laws that were not learned, the learning is performed here and the results are
     # stored in a pickled file. They have a '_post' suffix after the filename to differentiate it.
     innov_file_post = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}_post.pkl')
-    if os.path.exists(innov_file) and not rerun:
-        with open(innov_file, 'rb') as fp:
-            innov = pickle.load(fp)
-    elif os.path.exists(innov_file_post) and not rerun:
-        with open(innov_file_post, 'rb') as fp:
-            innov = pickle.load(fp)
-    else:
-        var_groups = []
-        with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
+    # if os.path.exists(innov_file) and not rerun:
+    #     with open(innov_file, 'rb') as fp:
+    #         innov = pickle.load(fp)
+    # elif os.path.exists(innov_file_post) and not rerun:
+    #     with open(innov_file_post, 'rb') as fp:
+    #         innov = pickle.load(fp)
+    if True:
+        # var_groups = [np.arange(data_arr.shape[1]).tolist()]
+        var_groups = [np.arange(5).tolist()]
+        # with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
             # Original begin
             # current_gen_data = hf[f'gen{current_gen}']
             # for key in current_gen_data.keys():
             #     if 'var_groups' in key:
             #         var_groups.append(np.array(current_gen_data[key]))
             # Original end
-            var_groups = []
+            # var_groups = []
         innov = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
                                 xl=np.array(xl), xu=np.array(xu), power_law_normalized=True, agent_names=['power_law_rep_sig_0'])
         innov.learn(data_arr)

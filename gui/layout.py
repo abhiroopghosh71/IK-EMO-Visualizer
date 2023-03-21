@@ -269,7 +269,7 @@ def construct_layout(args, gen_arr, query):
                             html.H5(children='Min. rule score', id='maxscore_power_text'),
                             dcc.Input(id="minscore_power", type="number", placeholder="Max. power law score",
                                       debounce=True,
-                                      inputMode='numeric', value=0),
+                                      inputMode='numeric', value=0.7),
                         ]),
                         html.Div([
                             html.H5(children='Max. rule error', id='maxerror_power_text'),
