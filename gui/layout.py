@@ -51,67 +51,67 @@ def construct_layout(args, gen_arr, query):
         refresh_hover_text = "Update data"
         save_hover_text = "Save changes"
 
-    html_layout += [
-        # Optimization controls
-        html.Div([
-            html.Div([html.H2(children=optim_control_title, className='widgetTitle')],
-                     style={'color': '#3C4B64', 'width': '25%', 'font-weight': 'normal', 'display': 'inline-block',
-                            'vertical-align': 'middle'}),
-
-            html.Div([
-                html.Div([
-                    html.Button(default_pause_play_icon, id='pause-continue-optimization', className="button3",
-                                disabled=optim_control_disabled,
-                                title=pause_play_hover_text,
-                                style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
-                                       'font-size': '30px', 'border': 'none'}),
-                    html.Button(REFRESH_ICON, id='refresh-data', className='button', title=refresh_hover_text,
-                                disabled=optim_control_disabled,
-                                style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
-                                       'font-size': '40px', 'border': 'none'}),
-                    html.Button(SAVE_ICON, id='save-data', className='button', title=save_hover_text,
-                                disabled=optim_control_disabled,
-                                style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
-                                       'font-size': '25px', 'border': 'none'}),
-                    dcc.ConfirmDialog(id='confirm-write',
-                                      message='This will write the results to disk. Continue?'),
-                ], style={'display': 'inline-block', 'width': '75%', 'vertical-align': 'middle',
-                          'padding': '0px 0 0 0'}),
-
-                # html.Div([
-                    # dcc.Loading(
-                    #     id="optim-loading",
-                    #     children=[html.Div([optim_progress_div])],
-                    #     type="circle",
-                    # ),
-                    # html.Div([
-                    # ], id='optim-rogress', style={'text-align': 'center'}),
-                    # dcc.Interval(
-                    #     id='interval-component',
-                    #     interval=3 * 1000,  # in milliseconds
-                    #     n_intervals=0
-                    # )
-                # ], style={'display': 'inline-block', 'width': '15%', 'vertical-align': 'middle'}),
-
-            ], style={'width': '70%', 'display': 'inline-block'}
-            )
-        ],
-            style={'width': '95.5%', 'display': 'inline-block', 'vertical-align': 'middle',
-                   'padding': '0px 0px 0px 40px',
-                   'border': '1px solid #969696', 'border-radius': '5px',
-                   'margin': '0px 0px 20px 20px',
-                   'background-color': 'white'}
-        ),
-    ]
+    # html_layout += [
+    #     # Optimization controls
+    #     html.Div([
+    #         html.Div([html.H2(children=optim_control_title, className='widgetTitle')],
+    #                  style={'color': '#3C4B64', 'width': '25%', 'font-weight': 'normal', 'display': 'inline-block',
+    #                         'vertical-align': 'middle'}),
+    #
+    #         html.Div([
+    #             html.Div([
+    #                 html.Button(default_pause_play_icon, id='pause-continue-optimization', className="button3",
+    #                             disabled=optim_control_disabled,
+    #                             title=pause_play_hover_text,
+    #                             style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
+    #                                    'font-size': '30px', 'border': 'none'}),
+    #                 html.Button(REFRESH_ICON, id='refresh-data', className='button', title=refresh_hover_text,
+    #                             disabled=optim_control_disabled,
+    #                             style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
+    #                                    'font-size': '40px', 'border': 'none'}),
+    #                 html.Button(SAVE_ICON, id='save-data', className='button', title=save_hover_text,
+    #                             disabled=optim_control_disabled,
+    #                             style={'width': '10%', 'margin': '0px 20px 0px 0px', 'display': 'inline-block',
+    #                                    'font-size': '25px', 'border': 'none'}),
+    #                 dcc.ConfirmDialog(id='confirm-write',
+    #                                   message='This will write the results to disk. Continue?'),
+    #             ], style={'display': 'inline-block', 'width': '75%', 'vertical-align': 'middle',
+    #                       'padding': '0px 0 0 0'}),
+    #
+    #             # html.Div([
+    #                 # dcc.Loading(
+    #                 #     id="optim-loading",
+    #                 #     children=[html.Div([optim_progress_div])],
+    #                 #     type="circle",
+    #                 # ),
+    #                 # html.Div([
+    #                 # ], id='optim-rogress', style={'text-align': 'center'}),
+    #                 # dcc.Interval(
+    #                 #     id='interval-component',
+    #                 #     interval=3 * 1000,  # in milliseconds
+    #                 #     n_intervals=0
+    #                 # )
+    #             # ], style={'display': 'inline-block', 'width': '15%', 'vertical-align': 'middle'}),
+    #
+    #         ], style={'width': '70%', 'display': 'inline-block'}
+    #         )
+    #     ],
+    #         style={'width': '95.5%', 'display': 'inline-block', 'vertical-align': 'middle',
+    #                'padding': '0px 0px 0px 40px',
+    #                'border': '1px solid #969696', 'border-radius': '5px',
+    #                'margin': '0px 0px 20px 20px',
+    #                'background-color': 'white'}
+    #     ),
+    # ]
 
     html_layout += [
         html.Div([
             html.Div([
                 html.Div([html.H2(children='Scatter plot', id='scatter-heading', className='widgetTitle',
                                   style={'display': 'inline-block', 'width': '50%'}),
-                          html.Button(children='Get alternate solution', id="similarSolutionButton",
-                                      title='Mark similar solutions',
-                                      style={'margin': '0 0px 0 0', 'display': 'inline-block'})
+                          # html.Button(children='Get alternate solution', id="similarSolutionButton",
+                          #             title='Mark similar solutions',
+                          #             style={'margin': '0 0px 0 0', 'display': 'inline-block'})
                           ],
                          style={'padding': '0px 0px 0px 20px', 'color': '#3C4B64'}),
                 html.Div([dcc.Graph(id='objective-space-scatter',
@@ -211,31 +211,31 @@ def construct_layout(args, gen_arr, query):
                       'overflow': 'scroll', 'height': '83%'}),
 
             # Historical data
-            html.Div([
-                html.Div([
-                    html.Div([
-                        html.H2(children='Optimization progress', id='hv-evolution-heading',
-                                style={'display': 'inline-block'}, className='widgetTitle'),
-                        dcc.Interval(id='optim-progress-update-interval',
-                                     interval=20 * 1000,  # in milliseconds
-                                     n_intervals=0),
-                        html.Div([
-                            html.Div([], className='circle--outer'),
-                            html.Div([], className='circle--inner'),
-                        ], className="video__icon", style={'display': 'inline-block'}),
-                    ]),
-                    html.Div([
-                        dcc.Graph(id='hv-evolution-graph', figure=get_hv_fig(update_hv_progress(gen_arr, query),
-                                                                             query.get(QUERY['MAX_ITER'])),
-                                  hoverData={'points': [{'customdata': ''}]}, config=config,
-                                  style={'width': '100%'})
-                    ], style={'width': '100%', 'padding-top': '20px'})
-                ], style={'width': '100%', 'display': 'inline-block', 'padding': '0 0 0 20px'})
-            ], style={'width': '29%', 'display': 'inline-block', 'float': 'center',
-                      'padding': '20px 20px 20px 20px',
-                      'vertical-align': 'top', 'background-color': 'white',
-                      'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 0px 20px 20px',
-                      'overflow': 'scroll', 'height': '83%'}),
+            # html.Div([
+            #     html.Div([
+            #         html.Div([
+            #             html.H2(children='Optimization progress', id='hv-evolution-heading',
+            #                     style={'display': 'inline-block'}, className='widgetTitle'),
+            #             dcc.Interval(id='optim-progress-update-interval',
+            #                          interval=20 * 1000,  # in milliseconds
+            #                          n_intervals=0),
+            #             html.Div([
+            #                 html.Div([], className='circle--outer'),
+            #                 html.Div([], className='circle--inner'),
+            #             ], className="video__icon", style={'display': 'inline-block'}),
+            #         ]),
+            #         html.Div([
+            #             dcc.Graph(id='hv-evolution-graph', figure=get_hv_fig(update_hv_progress(gen_arr, query),
+            #                                                                  query.get(QUERY['MAX_ITER'])),
+            #                       hoverData={'points': [{'customdata': ''}]}, config=config,
+            #                       style={'width': '100%'})
+            #         ], style={'width': '100%', 'padding-top': '20px'})
+            #     ], style={'width': '100%', 'display': 'inline-block', 'padding': '0 0 0 20px'})
+            # ], style={'width': '29%', 'display': 'inline-block', 'float': 'center',
+            #           'padding': '20px 20px 20px 20px',
+            #           'vertical-align': 'top', 'background-color': 'white',
+            #           'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 0px 20px 20px',
+            #           'overflow': 'scroll', 'height': '83%'}),
 
 
             # Shows the rules found by IK-EMO

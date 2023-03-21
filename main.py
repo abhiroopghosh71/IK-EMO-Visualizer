@@ -39,9 +39,15 @@ SAVE_ICON = '\U0001F4BE'
 # Parse input arguments
 args = get_argparser().parse_args()
 
-if args.result_path is None:
-    args.result_path = open_file_selection_dialog(multi_file=False, title="Select optimization history file",
-                                                  initialdir=".")
+if args.X_file is not None and args.F_file is not None and args.params_file is not None:
+    query = CSVQuery(x_file=args.X_file, f_file=args.F_file,
+                     param_file=args.params_file)
+else:
+    query = DemoQuery(args.result_path)
+
+# if args.result_path is None:
+#     args.result_path = open_file_selection_dialog(multi_file=False, title="Select optimization history file",
+#                                                   initialdir=".")
 
 hdf_file_original = os.path.join(args.result_path, 'optim_state.hdf5')
 # if os.path.exists(hdf_file_original):
@@ -52,11 +58,6 @@ temp_path = os.path.join(temp_dir, 'optim_state_temp.hdf5')
 hdf_file = hdf_file_original
 gen_arr, latest_innov_gen_key, latest_innov_gen, xl, xu, ignore_vars = [], None, None, [], [], []
 
-if args.X_file is not None:
-    query = CSVQuery(x_file=os.path.join('data', 'X.DAT'), f_file=os.path.join('data', 'F.DAT'),
-                     param_file=os.path.join('data', 'params.DAT'))
-else:
-    query = DemoQuery(args.result_path)
 max_gen = query.get(QUERY['MAX_ITER'])
 
 
@@ -111,8 +112,8 @@ prob_options = [{'label': 'Truss', 'value': 'Truss'}, {'label': 'OPF', 'value': 
 app.layout = html.Div(construct_layout(args, gen_arr, query))
 
 
-@app.callback(Output('confirm-write', 'displayed'),
-              Input('save-data', 'n_clicks'))
+# @app.callback(Output('confirm-write', 'displayed'),
+#               Input('save-data', 'n_clicks'))
 def display_confirm(n_clicks):
     ctx = dash.callback_context
     if ctx.triggered:
@@ -127,12 +128,12 @@ def display_confirm(n_clicks):
     return False
 
 
-@app.callback(Output("hv-evolution-graph", "figure"),
-               # Output('play_optim', 'disabled')],
-              Input('optim-progress-update-interval', 'n_intervals'),
-              # State("optim-loading", "loading_state"),
-              # State("play_optim", "n_clicks"),
-              )
+# @app.callback(Output("hv-evolution-graph", "figure"),
+#                # Output('play_optim', 'disabled')],
+#               Input('optim-progress-update-interval', 'n_intervals'),
+#               # State("optim-loading", "loading_state"),
+#               # State("play_optim", "n_clicks"),
+#               )
 def update_optim_progress(n_intervals):
     """Display the number of generations completed."""
     # global prob_options
@@ -152,13 +153,13 @@ def update_generation_no(selected_gen):
     return f'Generation {selected_gen}'
 
 
-@app.callback(
-    # Output(component_id='cross-filter-gen-slider', component_property='marks'),
-    Output(component_id='slider-div', component_property='children'),
-    Input(component_id='refresh-data', component_property='n_clicks'),
-    State(component_id='cross-filter-gen-slider', component_property='value')
-
-)
+# @app.callback(
+#     # Output(component_id='cross-filter-gen-slider', component_property='marks'),
+#     Output(component_id='slider-div', component_property='children'),
+#     Input(component_id='refresh-data', component_property='n_clicks'),
+#     State(component_id='cross-filter-gen-slider', component_property='value')
+#
+# )
 def refresh_dashboard(n_clicks, slider_val):
     update_global_parameters()
     slider_steps = get_gen_slider_steps(gen_arr)
@@ -960,11 +961,11 @@ def update_power_law_evolution_plot(plaw_var, current_gen, const_tol):
     return return_data
 
 
-@app.callback(
-    Output(component_id='pause-continue-optimization', component_property='children'),
-    Input(component_id='pause-continue-optimization', component_property='n_clicks'),
-    State(component_id='pause-continue-optimization', component_property='children'),
-)
+# @app.callback(
+#     Output(component_id='pause-continue-optimization', component_property='children'),
+#     Input(component_id='pause-continue-optimization', component_property='n_clicks'),
+#     State(component_id='pause-continue-optimization', component_property='children'),
+# )
 def toggle_pause_button(pause_click, title):
     ctx = dash.callback_context
     pause_file_path = os.path.join(args.result_path, '.pauserun')
