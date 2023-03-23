@@ -317,6 +317,40 @@ def construct_layout(args, gen_arr, query):
                                 ], className='ruleList')
                             ]),
                 ]),
+                    html.Div([
+                        dash_table.DataTable(
+                            id='datatable-row-ids',
+                            columns=[
+                                {'name': i, 'id': i, 'deletable': False} for i in power_law_df.columns
+                                # omit the id column
+                                if i != 'id'
+                            ],
+                            data=power_law_df.to_dict('records'),
+                            editable=True,
+                            filter_action="native",
+                            sort_action="native",
+                            sort_mode='multi',
+                            row_selectable='multi',
+                            row_deletable=False,
+                            selected_rows=[],
+                            page_action='native',
+                            page_current=0,
+                            page_size=10,
+                            hidden_columns=["i", "j", "b", "c"],
+                            style_as_list_view=False,
+                            style_cell={'padding': '5px'},
+                            style_header={
+                                # 'backgroundColor': 'white',
+                                'fontWeight': 'bold'
+                            },
+                            style_cell_conditional=[
+                                {
+                                    'if': {'column_id': c},
+                                    'textAlign': 'left'
+                                } for c in ['Power law']
+                            ],
+                        ),
+                    ], style={'width': '25%', 'font-size': '1.75em'}),
                 ], style={'width': '50%', 'display': 'inline-block', 'vertical-align': 'top'}),
                 html.Div([
                     html.Span([html.H3(children="Variable relation graph", id='vrg-fig-heading',
@@ -350,28 +384,7 @@ def construct_layout(args, gen_arr, query):
                       'overflow': 'scroll',
                       'margin': '0px 10px 10px 10px',
                       'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white'}),
-            html.Div([
-                dash_table.DataTable(
-                    id='datatable-row-ids',
-                    columns=[
-                        {'name': i, 'id': i, 'deletable': True} for i in power_law_df.columns
-                        # omit the id column
-                        if i != 'id'
-                    ],
-                    data=power_law_df.to_dict('records'),
-                    editable=True,
-                    filter_action="native",
-                    sort_action="native",
-                    sort_mode='multi',
-                    row_selectable='multi',
-                    row_deletable=False,
-                    selected_rows=[],
-                    page_action='native',
-                    page_current=0,
-                    page_size=10,
-                    hidden_columns=["i", "j", "b", "c"]
-                ),
-            ], style={'width': '60%', 'font-size': '1.875em'}),
+
             html.Div([
                 html.Div([
 
