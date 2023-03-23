@@ -1,9 +1,9 @@
 import os
 
 import numpy as np
-from dash import html
-from dash import dcc
+from dash import html, dcc, dash_table
 from plotly import graph_objs as go
+import pandas as pd
 
 # from main import gen_arr, query
 from query import QUERY
@@ -28,13 +28,16 @@ tab_style = {
 tab_selected_style = {
     'borderTop': '1px solid #d6d6d6',
     'borderBottom': '1px solid #d6d6d6',
-    'backgroundColor': '#119DFF',
+    'backgroundColor': '#5F4F93',
     'color': 'white',
     'padding': '6px'
 }
 
 
 def construct_layout(args, gen_arr, query):
+    power_law_df = pd.DataFrame(data=[], columns=["Power law",
+                                                  "i", "j", "b", "c",
+                                                  "Correlation", "Score", "MSE"])
     app_mode = args.app_mode
     default_pause_play_icon = PAUSE_ICON
     if os.path.exists(os.path.join(args.result_path, '.pauserun')):
@@ -125,15 +128,12 @@ def construct_layout(args, gen_arr, query):
         html.Div([
             html.Div([
                 html.Div([html.H2(children='Scatter plot', id='scatter-heading', className='widgetTitle',
-                                  style={'display': 'inline-block', 'width': '50%'}),
-                          # html.Button(children='Get alternate solution', id="similarSolutionButton",
-                          #             title='Mark similar solutions',
-                          #             style={'margin': '0 0px 0 0', 'display': 'inline-block'})
+                                  style={'display': 'inline-block'})
                           ],
                          style={'padding': '0px 0px 0px 20px', 'color': '#3C4B64'}),
                 html.Div([dcc.Graph(id='objective-space-scatter',
                                     hoverData={'points': [{'customdata': ''}]}, config=config)],
-                         style={'padding': '20px 20px 0px 20px',  # 'background-color': 'white',
+                         style={'padding': '0px 0px 0px 0px',  # 'background-color': 'white',
                                 'margin': '0px 0px 20px 0px', 'border-bottom': '1px #EBEDEF solid',
                                 'background-color': 'white'},
                          ),
@@ -161,10 +161,255 @@ def construct_layout(args, gen_arr, query):
                         marks=get_gen_slider_steps(gen_arr),
                         # marks={str(int(gen)): str(int(gen)) for gen in gen_arr}
                     )
-                ], style={'padding': '0px 20px 0px 0px'}, id='slider-div'),
-            ], style={'width': '30%', 'display': 'inline-block', 'padding': '20px 20px 0px 20px',
+                ], style={'padding': '0px 0px 0px 0px'}, id='slider-div'),
+            ], style={'width': '25%', 'display': 'inline-block', 'padding': '20px 20px 0px 20px',
                       'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
-                      'margin': '0px 20px 20px 20px', 'background-color': 'white'}),
+                      'background-color': 'white',
+                      'margin': '0px 0px 10px 10px'}
+            ),
+            html.Div([
+                # Power law rules
+                html.Div([
+                dcc.Tabs(id="innov-rules-tab-group", value='power-law-list', children=[
+                    dcc.Tab(label='Power laws', value='power-law-list', style=tab_style,
+                            selected_style=tab_selected_style, children=[
+                                html.Div([  # Bordered region
+                                    # Rule display settings
+                                    html.Div([
+                                        html.Div([
+                                            html.H6(children='Min. rule score', id='maxscore_power_text'),
+                                            dcc.Input(id="minscore_power", type="number",
+                                                      placeholder="Max. power law score",
+                                                      debounce=True,
+                                                      inputMode='numeric', value=0.7,
+                                                      className='ruleSetting'),
+                                        ]),
+                                        html.Div([
+                                            html.H6(children='Max. rule error', id='maxerror_power_text'),
+                                            dcc.Input(id="maxerror_power", type="number",
+                                                      placeholder="Max. power law error",
+                                                      debounce=True,
+                                                      inputMode='numeric', value=0.01,
+                                                      className='ruleSetting'),
+                                        ]),
+                                        html.Div([
+                                            html.H6(children='Min. corr.', id='mincorr_power_text'),
+                                            dcc.Input(id="mincorr_power", type="number",
+                                                      placeholder="Min. power corr", debounce=True,
+                                                      inputMode='numeric', value=0,
+                                                      className='ruleSetting'),
+                                        ]),
+                                        # html.Div([
+                                        #     html.H5(children='Vars per rule', id='varsperrule_power_text'),
+                                        #     dcc.Input(id="varsperrule_power", type="number",
+                                        #     placeholder="Vars per rule",
+                                        #     debounce=True,
+                                        #               inputMode='numeric', value=2, disabled=True),
+                                        # ]),
+                                        html.Div([
+                                            html.H6(children='Set rank', id='set_rank'),
+                                            dcc.Input(id="set_rank_power", type="number",
+                                                      debounce=True,
+                                                      inputMode='numeric',
+                                                      className='ruleSetting')
+                                        ])
+                                    ], style={'width': '30%', 'display': 'inline-block',
+                                              'vertical-align': 'top'}),
+                                    # Rule list
+                                    html.Div([
+                                        dcc.Checklist(
+                                            id='power-law-select-all',
+                                            options=[
+                                                {'label': 'Select all', 'value': 'select_all'},
+                                            ],
+                                            value=[]  # ['NYC', 'MTL']
+                                        ),
+                                        dcc.Checklist(
+                                            id='power-law-rule-checklist',
+                                            options=[
+                                            ],
+                                            value=[]
+                                        )
+                                    ], style={'width': '68%', 'display': 'inline-block',
+                                              'overflow': 'scroll'})
+                                ], className='ruleList'),
+                            ]),
+                    dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
+                            selected_style=tab_selected_style, children=[
+                                html.Div([  # Bordered region
+                                    # Rule display settings
+                                    html.Div([
+                                        html.Div([
+                                            html.H6(children='Min. rule score', id='maxscore_constant_text'),
+                                            dcc.Input(id="minscore_constant", type="number",
+                                                      placeholder="Max. constant rule score", debounce=True,
+                                                      inputMode='numeric', value=0, className='ruleSetting'),
+                                            html.Div([
+                                                html.H6(children='Const. tol.', id='const_tol_text'),
+                                                dcc.Input(id="const_tol", type="number",
+                                                          placeholder="Constant rule tol.", debounce=True,
+                                                          inputMode='numeric', value=0.01,
+                                                          className='ruleSetting'),
+                                            ]),
+                                        ]),
+                                    ], style={'width': '30%', 'height': '100%', 'display': 'inline-block',
+                                              'vertical-align': 'top'}),
+                                    # Rule list
+                                    html.Div([
+                                        dcc.Checklist(
+                                            id='constant-rule-select-all',
+                                            options=[
+                                                {'label': 'Select all', 'value': 'select_all'},
+                                            ],
+                                            value=[]  # ['NYC', 'MTL']
+                                        ),
+                                        dcc.Checklist(
+                                            id='constant-rule-checklist',
+                                            options=[
+                                                # {'label': 'New York City', 'value': 'NYC'},
+                                                # {'label': 'Montréal', 'value': 'MTL'},
+                                                # {'label': 'San Francisco', 'value': 'SF'}
+                                            ],
+                                            value=[]  # ['NYC', 'MTL']
+                                        )
+                                    ], style={'width': '68%', 'height': '100%', 'display': 'inline-block',
+                                              'overflow': 'scroll'})
+                                ], className='ruleList'),
+                            ]),
+                    dcc.Tab(label='Inequality rules', value='inequality-rule-list', style=tab_style,
+                            selected_style=tab_selected_style, children=[
+                                html.Div([  # Bordered region
+                                    # Rule display settings
+                                    html.Div([
+                                        html.Div([
+                                            html.H6(children='Min. rule score', id='minscore_ineq_text'),
+                                            dcc.Input(id="minscore_ineq", type="number",
+                                                      placeholder="Min. ineq. score",
+                                                      debounce=True,
+                                                      inputMode='numeric', value=0, className='ruleSetting'),
+                                        ], style={'display': 'inline-block'}),
+                                        html.Div([
+                                            html.H6(children='Min. var. corr.', id='mincorr_ineq_text'),
+                                            dcc.Input(id="mincorr_ineq", type="number",
+                                                      placeholder="Min. ineq. corr",
+                                                      debounce=True,
+                                                      inputMode='numeric', value=0, className='ruleSetting'),
+                                        ]),
+                                    ], style={'width': '30%', 'height': '100%', 'display': 'inline-block',
+                                              'vertical-align': 'top'}),
+                                    # Rule list
+                                    html.Div([
+                                        dcc.Checklist(
+                                            id='ineq-select-all',
+                                            options=[
+                                                {'label': 'Select all', 'value': 'select_all'},
+                                            ],
+                                            value=[]
+                                        ),
+                                        dcc.Checklist(
+                                            id='inequality-rule-checklist',
+                                            options=[
+                                            ],
+                                            value=[]
+                                        )
+                                    ], style={'width': '68%', 'height': '100%', 'display': 'inline-block',
+                                              'overflow': 'scroll'})
+                                ], className='ruleList')
+                            ]),
+                ]),
+                ], style={'width': '50%', 'display': 'inline-block', 'vertical-align': 'top'}),
+                html.Div([
+                    html.Span([html.H3(children="Variable relation graph", id='vrg-fig-heading',
+                                       style={'width': '50%', 'display': 'inline-block',
+                                              'padding': '10px'}, className='widgetTitle'),
+                               dcc.Dropdown([], id='var-group-selector', searchable=False,
+                                            style={'width': '30%', 'display': 'inline-block'}),
+                               # dcc.Input(
+                               #     id="vrg_vars",
+                               #     type="text", placeholder="Var pairs", debounce=True,
+                               #     inputMode='numeric', value=None,
+                               #     style={'width': '10%', 'display': 'inline-block'}
+                               # ),
+                               html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
+                                           style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                  'margin-left': '10px', 'font-size': '20px'}),
+                               html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
+                                           style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                  'margin-left': '10px', 'font-size': '20px'}),
+                               html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
+                                           style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                  'margin-left': '10px', 'font-size': '35px'}),
+                               ]),
+                    dcc.Graph(id='vrg-fig',
+                              hoverData={'points': [{'customdata': ''}]}, config=config),
+                        ], style={'width': '48%', 'display': 'inline-block', 'vertical-align': 'top',
+                                  'padding': '0 0 0 10px'}),
+
+            ], style={'width': '69%', 'padding': '20px 20px 20px 20px', 'display': 'inline-block',
+                      'vertical-align': 'top',
+                      'overflow': 'scroll',
+                      'margin': '0px 10px 10px 10px',
+                      'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white'}),
+            html.Div([
+                dash_table.DataTable(
+                    id='datatable-row-ids',
+                    columns=[
+                        {'name': i, 'id': i, 'deletable': True} for i in power_law_df.columns
+                        # omit the id column
+                        if i != 'id'
+                    ],
+                    data=power_law_df.to_dict('records'),
+                    editable=True,
+                    filter_action="native",
+                    sort_action="native",
+                    sort_mode='multi',
+                    row_selectable='multi',
+                    row_deletable=False,
+                    selected_rows=[],
+                    page_action='native',
+                    page_current=0,
+                    page_size=10,
+                    hidden_columns=["i", "j", "b", "c"]
+                ),
+            ], style={'width': '60%', 'font-size': '1.875em'}),
+            html.Div([
+                html.Div([
+
+                    html.Div([html.H2(children='Power law graph', id='power-law-graph-heading',
+                                      className='widgetTitle')],
+                             style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64', }),
+                    html.Div([
+                        html.Div([dcc.Graph(id='power-law-graph',
+                                            hoverData={'points': [{'customdata': ''}]}, config=config)]),
+                    ],
+                        style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
+                               'margin': '0px 20px 20px 20px'}),
+                    html.Div([
+                        html.Div([
+                            html.H2(children='Power law evolution', id='power-law-evolution-heading',
+                                    className='widgetTitle')], style={'width': '80%', 'display': 'inline-block'}
+                        ),
+                        html.Div([
+                            dcc.Input(
+                                id="plaw_evolution_vars",
+                                type="text", placeholder="Var pairs", debounce=True,
+                                inputMode='numeric', value=f"0,1",
+                                style={'width': '100px'}
+                            ),
+                        ], style={'width': '20%', 'display': 'inline-block'})
+                    ], style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64'}),
+                    html.Div([
+                        html.Div([dcc.Graph(id='power-law-evolution-graph',
+                                            hoverData={'points': [{'customdata': ''}]}, config=config)]),
+                    ],
+                        style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
+                               'padding': '0px 20px 20px 20px', 'margin': '0px 20px 0px 20px'})
+                ], style={'width': '45%', 'height': '100%', 'display': 'inline-block', 'padding': '20px 20px 20px 20px',
+                          'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
+                          'margin': '20px 20px 20px 0px', 'background-color': 'white', 'overflow': 'scroll'})
+            ], style={'height': '500px'}
+            ),
+            html.Div(id='dummy_rule_rank'),
             # Padding: top right bottom left
             html.Div([
                 html.Div([html.H2(children='Parallel coordinate plot (PCP)',
@@ -275,258 +520,6 @@ def construct_layout(args, gen_arr, query):
 
             ], style={'width': '34%', 'height': '91%', 'display': 'inline-block'})
         ], style={'width': '100%', 'height': '700px'}),
-        html.Div([
-            html.Div([
-                # Power law rules
-                html.H4(children='Power laws (normalized)', id='power-law-rule-list'),
-                dcc.Tabs(id="innov-rules-tab-group", value='power-law-list', children=[
-                    dcc.Tab(label='Power laws', value='power-law-list', style=tab_style,
-                            selected_style=tab_selected_style, children=[
-                            html.Div([  # Bordered region
-                                # Rule display settings
-                                html.Div([
-                                    html.Div([
-                                        html.H5(children='Min. rule score', id='maxscore_power_text'),
-                                        dcc.Input(id="minscore_power", type="number", placeholder="Max. power law score",
-                                                  debounce=True,
-                                                  inputMode='numeric', value=0.7),
-                                    ]),
-                                    html.Div([
-                                        html.H5(children='Max. rule error', id='maxerror_power_text'),
-                                        dcc.Input(id="maxerror_power", type="number", placeholder="Max. power law error",
-                                                  debounce=True,
-                                                  inputMode='numeric', value=0.01),
-                                    ]),
-                                    html.Div([
-                                        html.H5(children='Min. var. corr.', id='mincorr_power_text'),
-                                        dcc.Input(id="mincorr_power", type="number",
-                                                  placeholder="Min. power corr", debounce=True,
-                                                  inputMode='numeric', value=0),
-                                    ]),
-                                    # html.Div([
-                                    #     html.H5(children='Vars per rule', id='varsperrule_power_text'),
-                                    #     dcc.Input(id="varsperrule_power", type="number", placeholder="Vars per rule",
-                                    #     debounce=True,
-                                    #               inputMode='numeric', value=2, disabled=True),
-                                    # ]),
-                                    html.Div([
-                                        html.Div([
-                                            dcc.Checklist(
-                                                id='power-law-select-all',
-                                                options=[
-                                                    {'label': 'Select all', 'value': 'select_all'},
-                                                ],
-                                                value=[]  # ['NYC', 'MTL']
-                                                )], style={'display': 'inline-block', 'width': '30%',
-                                                           'padding': '10px 10px 10px 0px'}
-                                            ),
-                                        html.Div([
-                                            html.Button('Reset', id='power-reset', n_clicks=0)],
-                                            style={'display': 'inline-block', 'width': '30%',
-                                                   'padding': '10px 10px 10px 0px'}
-                                        ),
-                                        html.H5(children='Mark as rank', id='set_rank'),
-                                        dcc.Input(id="set_rank_power", type="number", placeholder="Set rank", debounce=True,
-                                                  inputMode='numeric')
-                                        ], style={'padding': '10px 0px 10px 0px'})
-                                    ], style={'width': '40%', 'height': '100%', 'display': 'inline-block',
-                                              'vertical-align': 'top'}),
-                                # Rule list
-                                html.Div([
-                                    dcc.Checklist(
-                                        id='power-law-rule-checklist',
-                                        options=[
-                                            # {'label': 'New York City', 'value': 'NYC'},
-                                            # {'label': 'Montréal', 'value': 'MTL'},
-                                            # {'label': 'San Francisco', 'value': 'SF'}
-                                        ],
-                                        value=[]  # ['NYC', 'MTL']
-                                    )
-                                ], style={'width': '56%', 'height': '100%', 'display': 'inline-block',
-                                          'overflow': 'scroll'})
-                            ], style={'height': '60%', 'border': '1px solid #969696', 'border-radius': '5px',
-                                      'background-color': 'white', 'padding': '20px 20px 20px 20px'}),
-                            ]),
-                    dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
-                            selected_style=tab_selected_style, children=[
-                                html.Div([  # Bordered region
-                                    # Rule display settings
-                                    html.Div([
-                                        html.Div([
-                                            html.H5(children='Min. rule score', id='maxscore_constant_text'),
-                                            dcc.Input(id="minscore_constant", type="number",
-                                                      placeholder="Max. constant rule score", debounce=True,
-                                                      inputMode='numeric', value=0),
-                                            html.Div([
-                                                html.H5(children='Const. tol.', id='const_tol_text'),
-                                                dcc.Input(id="const_tol", type="number",
-                                                          placeholder="Constant rule tol.", debounce=True,
-                                                          inputMode='numeric', value=0.01),
-                                            ]),
-                                        ]),
-                                        html.Div([
-                                            html.Div([
-                                                dcc.Checklist(
-                                                    id='constant-rule-select-all',
-                                                    options=[
-                                                        {'label': 'Select all', 'value': 'select_all'},
-                                                    ],
-                                                    value=[]  # ['NYC', 'MTL']
-                                                )], style={'display': 'inline-block', 'width': '30%',
-                                                           'padding': '10px 10px 10px 0px'}
-                                            ),
-                                            html.Div([
-                                                html.Button('Reset', id='constant-rule-reset', n_clicks=0)],
-                                                style={'display': 'inline-block', 'width': '30%',
-                                                       'padding': '10px 10px 10px 0px'}
-                                            ),
-                                        ], style={'padding': '10px 0px 10px 0px'})
-                                    ], style={'width': '48%', 'height': '100%', 'display': 'inline-block',
-                                              'vertical-align': 'top'}),
-                                    # Rule list
-                                    html.Div([
-                                        dcc.Checklist(
-                                            id='constant-rule-checklist',
-                                            options=[
-                                                # {'label': 'New York City', 'value': 'NYC'},
-                                                # {'label': 'Montréal', 'value': 'MTL'},
-                                                # {'label': 'San Francisco', 'value': 'SF'}
-                                            ],
-                                            value=[]  # ['NYC', 'MTL']
-                                        )
-                                    ], style={'width': '48%', 'height': '100%', 'display': 'inline-block',
-                                              'overflow': 'scroll'})
-                                ], style={'height': '35%', 'border': '1px solid #969696', 'border-radius': '5px',
-                                          'background-color': 'white',
-                                          'padding': '20px 20px 20px 20px'}),
-                            ]),
-                    dcc.Tab(label='Inequality rules', value='inequality-rule-list', style=tab_style,
-                            selected_style=tab_selected_style, children=[
-                            html.Div([  # Bordered region
-                                # Rule display settings
-                                html.Div([
-                                    html.Div([
-                                        html.H5(children='Min. rule score', id='minscore_ineq_text'),
-                                        dcc.Input(id="minscore_ineq", type="number", placeholder="Min. ineq. score",
-                                                  debounce=True,
-                                                  inputMode='numeric', value=0),
-                                    ], style={'display': 'inline-block'}),
-                                    html.Div([
-                                        html.H5(children='Min. var. corr.', id='mincorr_ineq_text'),
-                                        dcc.Input(id="mincorr_ineq", type="number", placeholder="Min. ineq. corr",
-                                                  debounce=True,
-                                                  inputMode='numeric', value=0),
-                                    ]),
-                                    # html.Div([
-                                    #     html.H5(children='Vars per rule', id='varsperrule_ineq_text'),
-                                    #     dcc.Input(id="varsperrule_ineq", type="number", placeholder="Vars per rule",
-                                    #     debounce=True,
-                                    #               inputMode='numeric', value=2, disabled=True),
-                                    # ]),
-                                    html.Div([
-                                        html.Div([
-                                            dcc.Checklist(
-                                                id='ineq-select-all',
-                                                options=[
-                                                    {'label': 'Select all', 'value': 'select_all'},
-                                                ],
-                                                value=[]  # ['NYC', 'MTL']
-                                            )], style={'display': 'inline-block', 'width': '30%',
-                                                       'padding': '10px 10px 10px 0px'}
-                                        ),
-                                        html.Div([
-                                            html.Button('Reset', id='ineq-reset', n_clicks=0)],
-                                            style={'display': 'inline-block', 'width': '30%',
-                                                   'padding': '10px 10px 10px 0px'}
-                                        )],
-                                        style={'padding': '10px 0px 0px 0px'}),
-                                ], style={'width': '48%', 'height': '100%', 'display': 'inline-block',
-                                          'vertical-align': 'top'}),
-                                # Rule list
-                                html.Div([
-                                    dcc.Checklist(
-                                        id='inequality-rule-checklist',
-                                        options=[
-                                            # {'label': 'New York City', 'value': 'NYC'},
-                                            # {'label': 'Montréal', 'value': 'MTL'},
-                                            # {'label': 'San Francisco', 'value': 'SF'}
-                                        ],
-                                        value=[]  # ['NYC', 'MTL']
-                                    )
-                                ], style={'width': '48%', 'height': '100%', 'display': 'inline-block',
-                                          'overflow': 'scroll'})
-                            ], style={'height': '50%', 'border': '1px solid #969696', 'border-radius': '5px',
-                                      'background-color': 'white', 'padding': '20px 20px 20px 20px'})
-                            ]),
-                ]),
-                # Constant rules
-                # html.H4(children='Constant rules', id='constant-rule-list'),
-                # html.H4(children='Inequality rules', id='rule-list'),
-
-            ], style={'width': '45%', 'padding': '20px 20px 20px 20px', 'display': 'inline-block',
-                      'overflow': 'scroll', 'margin': '20px 20px 20px 20px',
-                      'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white'}),
-            html.Div([
-                html.Div([
-                    html.Span([html.H2(children="Variable relation graph", id='vrg-fig-heading',
-                                       style={'width': '45%', 'display': 'inline-block'}, className='widgetTitle'),
-                               dcc.Dropdown([], id='var-group-selector', searchable=False,
-                                            style={'width': '35%', 'display': 'inline-block'}),
-                               # dcc.Input(
-                               #     id="vrg_vars",
-                               #     type="text", placeholder="Var pairs", debounce=True,
-                               #     inputMode='numeric', value=None,
-                               #     style={'width': '10%', 'display': 'inline-block'}
-                               # ),
-                               html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '20px', 'font-size': '25px'}),
-                               html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '20px', 'font-size': '25px'}),
-                               html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '20px', 'font-size': '40px'}),
-                               ])],
-                         style={'padding': '20px 0px 0px 20px', 'color': '#3C4B64'}
-                         ),
-                dcc.Graph(id='vrg-fig',
-                          hoverData={'points': [{'customdata': ''}]}, config=config),
-                html.Div([html.H2(children='Power law graph', id='power-law-graph-heading',
-                                  className='widgetTitle')],
-                         style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64', }),
-                html.Div([
-                    html.Div([dcc.Graph(id='power-law-graph',
-                                        hoverData={'points': [{'customdata': ''}]}, config=config)]),
-                ],
-                    style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
-                           'margin': '0px 20px 20px 20px'}),
-                html.Div([
-                    html.Div([
-                        html.H2(children='Power law evolution', id='power-law-evolution-heading',
-                                className='widgetTitle')], style={'width': '80%', 'display': 'inline-block'}
-                             ),
-                    html.Div([
-                        dcc.Input(
-                            id="plaw_evolution_vars",
-                            type="text", placeholder="Var pairs", debounce=True,
-                            inputMode='numeric', value=f"0,1",
-                            style={'width': '100px'}
-                        ),
-                    ], style={'width': '20%', 'display': 'inline-block'})
-                ], style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64'}),
-                html.Div([
-                    html.Div([dcc.Graph(id='power-law-evolution-graph',
-                                        hoverData={'points': [{'customdata': ''}]}, config=config)]),
-                ],
-                    style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
-                           'padding': '0px 20px 20px 20px', 'margin': '0px 20px 0px 20px'})
-            ], style={'width': '45%', 'height': '100%', 'display': 'inline-block', 'padding': '20px 20px 20px 20px',
-                      'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
-                      'margin': '20px 20px 20px 0px', 'background-color': 'white', 'overflow': 'scroll'})
-        ],  style={'height': '700px'}
-        ),
-        html.Div(id='dummy_rule_rank')
     ]
 
     return html_layout

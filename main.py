@@ -6,14 +6,14 @@ from signal import signal, SIGINT
 import tempfile
 
 import dash
-from dash import dcc
-from dash import html
+from dash import dcc, dash_table, html
 from dash.dependencies import Input, Output, State
 # from dash.exceptions import PreventUpdate
 import numpy as np
 import plotly.graph_objs as go
 import h5py
 import networkx as nx
+import pandas as pd
 
 from gui.layout import get_gen_slider_steps, blank_fig, get_hv_fig, update_hv_progress, \
     get_current_gen_data, construct_layout
@@ -187,10 +187,9 @@ def refresh_dashboard(n_clicks, slider_val):
 #      Input("mincorr_ineq", "value"),
 #      Input("varsperrule_ineq", "value"),
 #      Input(component_id='objective-space-scatter', component_property='selectedData'),
-#      Input(component_id='ineq-reset', component_property='n_clicks')],
 #     State(component_id='inequality-rule-checklist', component_property='options')
 # )
-# def ineq_rule_checklist(selected_gen, minscore_ineq, mincorr_ineq, vars_per_rule, selected_data, n_clicks_power,
+# def ineq_rule_checklist(selected_gen, minscore_ineq, mincorr_ineq, vars_per_rule, selected_data,
 #                         checklist):
 #     ctx = dash.callback_context
 #
@@ -203,8 +202,6 @@ def refresh_dashboard(n_clicks, slider_val):
 #             if selected_data is not None:
 #                 print("Inequality law checklist triggered by selected data")
 #                 # raise dash.exceptions.PreventUpdate
-#         if id_which_triggered == 'ineq-reset':
-#             print("Power law reset button pressed")
 #             return checklist, []
 #     # print("minscore_ineq = ", minscore_ineq)
 #     # print("mincorr_power = ", mincorr_ineq)
@@ -358,13 +355,13 @@ def update_var_group_list(selected_gen, const_tol):
      Input("const_tol", "value"),
      Input("minscore_constant", "value"),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
-     Input(component_id='constant-rule-reset', component_property='n_clicks'),
      Input("constant-rule-select-all", "value"),
      Input('var-group-selector', 'value')],
     [State(component_id='constant-rule-checklist', component_property='options')]
 )
 def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
-                                   selected_data, nclicks_constant, constant_rule_all_selected,
+                                   selected_data,
+                                   constant_rule_all_selected,
                                    var_grp_selected, constant_rule_options):
     ctx = dash.callback_context
 
@@ -475,22 +472,28 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
 
 @app.callback(
     [Output(component_id='power-law-rule-checklist', component_property='options'),
-     Output(component_id='power-law-rule-checklist', component_property='value')],
+     Output(component_id='power-law-rule-checklist', component_property='value'),
+     Output('datatable-row-ids', 'data')],
     [Input('cross-filter-gen-slider', 'value'),
      Input("maxerror_power", "value"),
      Input("minscore_power", "value"),
      Input("mincorr_power", "value"),
      # Input("varsperrule_power", "value"),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
-     Input(component_id='power-reset', component_property='n_clicks'),
+     # Input(component_id='power-reset', component_property='n_clicks'),
      Input("power-law-select-all", "value"),
      Input('var-group-selector', 'value')],
     [State(component_id='power-law-rule-checklist', component_property='options'),
      State("maxerror_power", "value"),
-     State("const_tol", "value")]
+     State("const_tol", "value"),
+     # State('datatable-row-ids', 'data'),
+     # State('datatable-row-ids', 'columns')
+     ]
 )
 def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power, mincorr_power,
-                                    selected_data, nclicks_power, power_law_all_selected,
+                                    selected_data,
+                                    # nclicks_power,
+                                    power_law_all_selected,
                                     var_grp_selected,
                                     power_law_options, power_law_max_error, const_tol):
     ctx = dash.callback_context
@@ -508,9 +511,9 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
             if selected_data is not None:
                 print("Power law checklist triggered by selected data")
                 # raise dash.exceptions.PreventUpdate
-        if id_which_triggered == 'power-reset':
-            print("Power law reset button pressed")
-            return power_law_options, []
+        # if id_which_triggered == 'power-reset':
+        #     print("Power law reset button pressed")
+        #     return power_law_options, []
 
     if var_grp_selected is None:
         v_grp = 0
@@ -579,6 +582,7 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
     power_law_error_list = []
     power_law_corr_list = []
 
+    power_law_list = []
     # For every var pair in the currently selected group
     for i in range(len(innov.groups[v_grp]) - 1):
         var_i = innov.groups[v_grp][i]
@@ -619,11 +623,28 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
                 power_law_score_list.append(np.round(score, decimals=2))
                 power_law_error_list.append(power_law_error[var_i, var_j])
                 power_law_corr_list.append(np.round(innov.correlation[var_i, var_j], decimals=2))
+                # Power law list: [String representation, i, j, b_ij, c_ij, correlation, score, mse]
+                power_law_list.append([
+                    f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)
+                    + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup)
+                    + f" = {np.round(c_arr[var_i, var_j], decimals=2)}",
+                    var_i, var_j,
+                    np.round(b_arr[var_i, var_j], decimals=2),
+                    np.round(c_arr[var_i, var_j], decimals=2),
+                    np.round(innov.correlation[var_i, var_j], decimals=2),
+                    score,
+                    "{:.1e}".format(power_law_error[var_i, var_j])
+                ])
 
     for i in range(len(power_law_data)):
         power_law_data[i]['value'] = str(power_law_data[i]['value'])
 
-    return power_law_data, []
+    # Data frame to be used in the power law table on the display
+    power_law_df = pd.DataFrame(data=power_law_list, columns=["Power law",
+                                                              "i", "j", "b", "c",
+                                                              "Correlation", "Score", "MSE"])
+
+    return power_law_data, [], power_law_df.to_dict('records')
 
 
 def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error, const_tol):

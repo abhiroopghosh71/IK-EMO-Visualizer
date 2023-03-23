@@ -21,6 +21,17 @@ H2.widgetTitle
     color: #3C4B64;
     font-weight: lighter;
 }
+.ruleSetting
+{
+    width: 150px;
+}
+.ruleList
+{
+    border: 1px solid #969696;
+    border-radius: 5px;
+    background-color: white;
+    padding: 20px 20px 20px 20px;
+}
 *:before, *:after {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
