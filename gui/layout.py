@@ -30,14 +30,14 @@ tab_selected_style = {
     'borderBottom': '1px solid #d6d6d6',
     'backgroundColor': '#5F4F93',
     'color': 'white',
-    'padding': '6px'
+    'padding': '6px',
 }
 
 
 def construct_layout(args, gen_arr, query):
     power_law_df = pd.DataFrame(data=[], columns=["Power law",
                                                   "i", "j", "b", "c",
-                                                  "Correlation", "Score", "MSE"])
+                                                  "Corr.", "Score", "MSE"])
     app_mode = args.app_mode
     default_pause_play_icon = PAUSE_ICON
     if os.path.exists(os.path.join(args.result_path, '.pauserun')):
@@ -127,42 +127,52 @@ def construct_layout(args, gen_arr, query):
     html_layout += [
         html.Div([
             html.Div([
-                html.Div([html.H2(children='Scatter plot', id='scatter-heading', className='widgetTitle',
-                                  style={'display': 'inline-block'})
-                          ],
-                         style={'padding': '0px 0px 0px 20px', 'color': '#3C4B64'}),
-                html.Div([dcc.Graph(id='objective-space-scatter',
-                                    hoverData={'points': [{'customdata': ''}]}, config=config)],
-                         style={'padding': '0px 0px 0px 0px',  # 'background-color': 'white',
-                                'margin': '0px 0px 20px 0px', 'border-bottom': '1px #EBEDEF solid',
-                                'background-color': 'white'},
-                         ),
+                dcc.Tabs(id="var-obj-tab-group", value='scatter-plot', children=[
+                    dcc.Tab(label='Scatter Plot', value='scatter-plot', style=tab_style,
+                            selected_style=tab_selected_style, children=[
+                                dcc.Graph(id='objective-space-scatter',
+                                          hoverData={'points': [{'customdata': ''}]}, config=config),
+                                html.Div([
+                                    html.H6(children='Generation', id='generation-no', style={'display': 'inline-block'}),
+                                    html.Div([
+                                        html.Button(children=PLAY_ICON, id="playScatter", title='Play',
+                                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
+                                                           'padding-right': '0px'}),
+                                        html.Button(children=STOP_ICON, id="stopScatter", title='Pause',
+                                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
+                                                           'padding-left': '10px'})
+                                    ], style={'margin': '0 0 0 20px', 'display': 'inline-block'}),
+                                ], style={'padding': '0px 20px 0px 20px'}),
+                                html.Div([
+                                    dcc.Slider(
+                                        id='cross-filter-gen-slider',
+                                        min=min(gen_arr),
+                                        max=max(gen_arr),
+                                        value=max(gen_arr),
+                                        step=None,
+                                        tooltip={"placement": "bottom", "always_visible": True},
+                                        marks=get_gen_slider_steps(gen_arr),
+                                        # marks={str(int(gen)): str(int(gen)) for gen in gen_arr}
+                                    )
+                                ], style={'padding': '0px 0px 0px 0px'}, id='slider-div')
+                            ]),
+                    dcc.Tab(label='Parallel Coordinate Plot', value='pcp-plot', style=tab_style,
+                            selected_style=tab_selected_style, children=[
+                                html.Div([
+                                    html.Div([
+                                        dcc.Graph(id='pcp-interactive',
+                                                  hoverData={'points': [{'customdata': ''}]}, config=config,
+                                                  # style={'width': '200px'}
+                                                  )
+                                            ], style={'min-width': '1000%', 'width': '1000%'})
+                                ], style={'overflow': 'scroll'})
+                            ]),
+                ], style={'display': 'inline-block',
+                          'vertical-align': 'top',
+                          'padding': '0 0 0 10px'}),
 
-                html.Div([
-                    html.H6(children='Generation', id='generation-no', style={'display': 'inline-block'}),
-                    html.Div([
-                        html.Button(children=PLAY_ICON, id="playScatter", title='Play',
-                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
-                                           'padding-right': '0px'}),
-                        html.Button(children=STOP_ICON, id="stopScatter", title='Pause',
-                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
-                                           'padding-left': '10px'})
-                    ], style={'margin': '0 0 0 20px', 'display': 'inline-block'}),
-                ], style={'padding': '0px 20px 0px 20px'}),
 
-                html.Div([
-                    dcc.Slider(
-                        id='cross-filter-gen-slider',
-                        min=min(gen_arr),
-                        max=max(gen_arr),
-                        value=max(gen_arr),
-                        step=None,
-                        tooltip={"placement": "bottom", "always_visible": True},
-                        marks=get_gen_slider_steps(gen_arr),
-                        # marks={str(int(gen)): str(int(gen)) for gen in gen_arr}
-                    )
-                ], style={'padding': '0px 0px 0px 0px'}, id='slider-div'),
-            ], style={'width': '25%', 'display': 'inline-block', 'padding': '20px 20px 0px 20px',
+            ], style={'display': 'inline-block', 'padding': '20px 20px 0px 20px',
                       'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
                       'background-color': 'white',
                       'margin': '0px 0px 10px 10px'},
@@ -288,31 +298,63 @@ def construct_layout(args, gen_arr, query):
                     ]),
                 ], style={'width': '50%', 'display': 'inline-block', 'vertical-align': 'top'}),
                 html.Div([
-                    html.Span([html.H3(children="Variable relation graph", id='vrg-fig-heading',
-                                       style={'width': '50%', 'display': 'inline-block',
-                                              'padding': '10px'}, className='widgetTitle'),
-                               dcc.Dropdown([], id='var-group-selector', searchable=False,
-                                            style={'width': '30%', 'display': 'inline-block'}),
-                               # dcc.Input(
-                               #     id="vrg_vars",
-                               #     type="text", placeholder="Var pairs", debounce=True,
-                               #     inputMode='numeric', value=None,
-                               #     style={'width': '10%', 'display': 'inline-block'}
-                               # ),
-                               html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '10px', 'font-size': '20px'}),
-                               html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '10px', 'font-size': '20px'}),
-                               html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
-                                           style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                  'margin-left': '10px', 'font-size': '35px'}),
-                               ]),
-                    dcc.Graph(id='vrg-fig',
-                              hoverData={'points': [{'customdata': ''}]}, config=config),
+                    dcc.Tabs(id="innov-figures-tab-group", value='vrg', children=[
+                        dcc.Tab(label='Variable Relation Graph', value='vrg', style=tab_style,
+                                selected_style=tab_selected_style, children=[
+                                   dcc.Dropdown([], id='var-group-selector', searchable=False,
+                                                style={'width': '50%', 'display': 'inline-block',
+                                                       'vertical-align': 'middle'}),
+                                   # dcc.Input(
+                                   #     id="vrg_vars",
+                                   #     type="text", placeholder="Var pairs", debounce=True,
+                                   #     inputMode='numeric', value=None,
+                                   #     style={'width': '10%', 'display': 'inline-block'}
+                                   # ),
+                                   html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
+                                               style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                      'margin-left': '10px', 'font-size': '20px',
+                                                      'display': 'inline-block',
+                                                       'vertical-align': 'middle'}),
+                                   html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
+                                               style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                      'margin-left': '10px', 'font-size': '20px',
+                                                      'display': 'inline-block',
+                                                       'vertical-align': 'middle'}),
+                                   html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
+                                               style={'padding': '0', 'border': 'none', 'background': 'none',
+                                                      'margin-left': '10px', 'font-size': '35px',
+                                                      'display': 'inline-block',
+                                                       'vertical-align': 'middle'}),
+                                   dcc.Graph(id='vrg-fig', hoverData={'points': [{'customdata': ''}]},
+                                             config=config)], className='ruleList'),
+
+                        dcc.Tab(label='Rule Plot', value='rule-plot', style=tab_style,
+                                selected_style=tab_selected_style, children=[
+                                    html.Div([
+                                        html.Div([dcc.Graph(id='power-law-graph',
+                                                            hoverData={'points': [{'customdata': ''}]},
+                                                            config=config)]),
+                                    ],
+                                        style={'border': '1px solid #969696', 'border-radius': '5px',
+                                               'background-color': 'white',
+                                               'margin': '0px 20px 20px 20px'})], className='ruleList'),
+                        dcc.Tab(label='Rule Evolution', value='rule-evolution-plot', style=tab_style,
+                                selected_style=tab_selected_style, children=[
+                                    html.Div([
+                                        dcc.Input(
+                                            id="plaw_evolution_vars",
+                                            type="text", placeholder="Var pairs", debounce=True,
+                                            inputMode='numeric', value=f"0,1",
+                                            style={'width': '100px'}
+                                        ),
+                                        html.Div([dcc.Graph(id='power-law-evolution-graph',
+                                                            hoverData={'points': [{'customdata': ''}]},
+                                                            config=config)])
+                                    ], style={})], className='ruleList'),
+                                   ]),
                         ], style={'width': '48%', 'display': 'inline-block', 'vertical-align': 'top',
                                   'padding': '0 0 0 10px'}),
+
 
             ], style={'width': '69%', 'padding': '20px 20px 20px 20px', 'display': 'inline-block',
                       'vertical-align': 'top',
@@ -323,53 +365,17 @@ def construct_layout(args, gen_arr, query):
             ], className='row'),
 
         html.Div([
-            html.Div([
-                html.Div([
-
-                    html.Div([html.H2(children='Power law graph', id='power-law-graph-heading',
-                                      className='widgetTitle')],
-                             style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64', }),
-                    html.Div([
-                        html.Div([dcc.Graph(id='power-law-graph',
-                                            hoverData={'points': [{'customdata': ''}]}, config=config)]),
-                    ],
-                        style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
-                               'margin': '0px 20px 20px 20px'}),
-                    html.Div([
-                        html.Div([
-                            html.H2(children='Power law evolution', id='power-law-evolution-heading',
-                                    className='widgetTitle')], style={'width': '80%', 'display': 'inline-block'}),
-                        html.Div([
-                            dcc.Input(
-                                id="plaw_evolution_vars",
-                                type="text", placeholder="Var pairs", debounce=True,
-                                inputMode='numeric', value=f"0,1",
-                                style={'width': '100px'}
-                            ),
-                        ], style={'width': '20%', 'display': 'inline-block'})
-                    ], style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64'}),
-                    html.Div([
-                        html.Div([dcc.Graph(id='power-law-evolution-graph',
-                                            hoverData={'points': [{'customdata': ''}]}, config=config)]),
-                    ],
-                        style={'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white',
-                               'padding': '0px 20px 20px 20px', 'margin': '0px 20px 0px 20px'})
-                ], style={'width': '45%', 'height': '100%', 'display': 'inline-block', 'padding': '20px 20px 20px 20px',
-                          'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
-                          'margin': '20px 20px 20px 0px', 'background-color': 'white', 'overflow': 'scroll'})
-            ], style={'height': '500px'}
-            ),
             html.Div(id='dummy_rule_rank'),
             # Padding: top right bottom left
             html.Div([
-                html.Div([html.H2(children='Parallel coordinate plot (PCP)',
-                                  id='pcp-heading', className='widgetTitle')],
-                         style={'padding': '0px 20px 20px 20px', 'color': '#3C4B64'}),
-                html.Div([
-                    html.Div([dcc.Graph(id='pcp-interactive',
-                                        hoverData={'points': [{'customdata': ''}]}, config=config)],
-                             style={'width': '1000%'}
-                             )
+                # html.Div([html.H2(children='Parallel coordinate plot (PCP)',
+                #                   id='pcp-heading', className='widgetTitle')],
+                #          style={'padding': '0px 20px 20px 20px', 'color': '#3C4B64'}),
+                # html.Div([
+                #     html.Div([dcc.Graph(id='pcp-interactive',
+                #                         hoverData={'points': [{'customdata': ''}]}, config=config)],
+                #              style={'width': '1000%'}
+                #              )
                 ], style={'overflow': 'scroll', 'border': '1px solid #969696',
                           'border-radius': '5px',
                           'background-color': 'white', 'padding': '0px 20px 20px 10px',
@@ -440,8 +446,7 @@ def construct_layout(args, gen_arr, query):
                 #               'margin': '0px 20px 20px 0px', 'background-color': 'white', 'height': '100%'}),
 
             # ], style={'width': '34%', 'height': '91%', 'display': 'inline-block'})
-        ], style={'width': '100%', 'height': '700px'}),
-    ]
+        ]
 
     return html_layout
 

@@ -567,7 +567,7 @@ def update_power_law_rule_checklist(selected_gen,
     # Data frame to be used in the power law table on the display
     power_law_df = pd.DataFrame(data=power_law_list, columns=["Power law",
                                                               "i", "j", "b", "c",
-                                                              "Correlation", "Score", "MSE"])
+                                                              "Corr.", "Score", "MSE"])
 
     return power_law_df.to_dict('records')
 

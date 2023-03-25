@@ -20,11 +20,37 @@ body
   flex: 1; /* additionally, equal width */
   padding: 1em;
   border: solid;
+    overflow: auto;
+    flex-direction: row;
+  -webkit-flex-direction: row;
 }
-
 .col-left {
   flex-basis: 25%;
+    overflow: scroll;
+    flex-direction: row;
+  -webkit-flex-direction: row;
 }
+.content {
+    flex: 1;
+    display: flex;
+    overflow: auto;
+}
+.box {
+    display: flex;
+    min-width: min-content; /* needs vendor prefixes */
+    /*flex-basis: 20px;*/
+}
+div.body {
+      	position: relative;  /* <------------------------- required */
+    	background: silver;
+      	flex: 1;
+    }
+
+    div.scrolled-body {
+      	position: absolute;  /* <------------------------- required */
+      	left: 0; top: 0; right: 0; bottom: 0;  /* <------- required */
+      	overflow-x: auto;  /* <--------------------------- required */
+    }
 
 H2.widgetTitle
 {
