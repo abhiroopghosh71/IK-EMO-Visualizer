@@ -471,49 +471,29 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
 
 
 @app.callback(
-    [Output(component_id='power-law-rule-checklist', component_property='options'),
-     Output(component_id='power-law-rule-checklist', component_property='value'),
-     Output('datatable-row-ids', 'data')],
+    Output('datatable-row-ids', 'data'),
     [Input('cross-filter-gen-slider', 'value'),
-     Input("maxerror_power", "value"),
-     Input("minscore_power", "value"),
-     Input("mincorr_power", "value"),
-     # Input("varsperrule_power", "value"),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
-     # Input(component_id='power-reset', component_property='n_clicks'),
-     Input("power-law-select-all", "value"),
      Input('var-group-selector', 'value')],
-    [State(component_id='power-law-rule-checklist', component_property='options'),
-     State("maxerror_power", "value"),
-     State("const_tol", "value"),
-     # State('datatable-row-ids', 'data'),
-     # State('datatable-row-ids', 'columns')
+    [
+     # Power law table data
+     State('datatable-row-ids', "derived_virtual_data"),
+     State('datatable-row-ids', "derived_virtual_selected_rows")
      ]
 )
-def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power, mincorr_power,
+def update_power_law_rule_checklist(selected_gen,
                                     selected_data,
-                                    # nclicks_power,
-                                    power_law_all_selected,
                                     var_grp_selected,
-                                    power_law_options, power_law_max_error, const_tol):
+                                    power_law_rows_all, derived_virtual_selected_rows):
     ctx = dash.callback_context
 
     if ctx.triggered:
         print("Power law triggers")
-        # print(ctx.triggered)
         id_which_triggered = ctx.triggered[0]['prop_id'].split('.')[0]
         print(id_which_triggered)
-        if id_which_triggered == 'power-law-select-all':
-            all_or_none = []
-            all_or_none = [option["value"] for option in power_law_options if power_law_all_selected]
-            return power_law_options, all_or_none
         if id_which_triggered == 'objective-space-scatter':
             if selected_data is not None:
                 print("Power law checklist triggered by selected data")
-                # raise dash.exceptions.PreventUpdate
-        # if id_which_triggered == 'power-reset':
-        #     print("Power law reset button pressed")
-        #     return power_law_options, []
 
     if var_grp_selected is None:
         v_grp = 0
@@ -545,42 +525,12 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
     else:
         data_arr = x_nd
 
-    # if args.special_flag is not None:
-    #     n_var = x.shape[1]
-    #     if n_var == 279 or n_var == 86:
-    #         n_shape_var = 19
-    #     elif n_var == 579 or n_var == 176:
-    #         n_shape_var = 39
-    #     elif n_var == 879 or n_var == 266:
-    #         n_shape_var = 59
-    #     else:
-    #         return {'data': [], 'layout': None}
-    #     for i in range(data_arr.shape[0]):
-    #         if n_var == 279 or n_var == 579 or n_var == 879:
-    #             symmetry = ()
-    #             shape_var = data_arr[i, -n_shape_var:]
-    #             shape_var[:n_shape_var // 2 + 1] = np.sort(shape_var[:n_shape_var // 2 + 1])
-    #             # shape_var[n_shape_var // 2 + 1:] = np.flip(np.sort(shape_var[n_shape_var // 2 + 1:]))
-    #             shape_var[n_shape_var // 2 + 1:] = np.flip(
-    #                 shape_var[:n_shape_var // 2 + 1] + 0.001 + np.random.random() * 0.001)[1:]
-    #             shape_var[n_shape_var // 2] = (shape_var[n_shape_var // 2] + shape_var[n_shape_var // 2 - 1]) / 2
-    #         else:
-    #             symmetry = ('xz', 'yz')
-    #             shape_var = data_arr[i, -(n_shape_var // 2 + 1):]
-    #             shape_var = np.sort(shape_var)
-    #         data_arr[i, -n_shape_var:] = shape_var
-
-    innov = get_innovization(nearest_gen_value, data_arr, const_tol)
+    innov = get_innovization(nearest_gen_value, data_arr, 1e-3)
 
     b_arr, c_arr = innov.relation[1].b, innov.relation[1].c
     power_law_error = innov.relation[1].error
     const_var_list = np.where(innov.relation[0].const_var_flag == 1)[0]
-    power_law_data = []
     print("Var grp = ", innov.groups[v_grp])
-    # TODO: Following lists will be used for sorting the listed power laws
-    power_law_score_list = []
-    power_law_error_list = []
-    power_law_corr_list = []
 
     power_law_list = []
     # For every var pair in the currently selected group
@@ -594,35 +544,13 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
                 continue
             # Show rules for normal power laws.
             if var_i not in const_var_list and var_j not in const_var_list:
-                if power_law_error[var_i, var_j] > maxerror_power:
-                    continue
-                if np.abs(innov.correlation[var_i, var_j]) < mincorr_power:
-                    continue
-
-                # score = 0
-                # x_nd_normalized = normalize_x(data_arr)
                 power_law = [var_i, var_j, b_arr[var_i, var_j], c_arr[var_i, var_j]]
 
                 rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
                     = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value, power_law=[power_law],
-                                          power_law_max_error=power_law_max_error, const_tol=const_tol)
+                                          power_law_max_error=0.01, const_tol=1e-3)
                 score = len(rule_compliance_id) / data_arr.shape[0]
 
-                if score < minscore_power:
-                    continue
-
-                pstr = f"x\u0302{var_i} * x\u0302{var_j}".translate(sub) \
-                       + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup) \
-                       + f" = {np.round(c_arr[var_i, var_j], decimals=2)}" \
-                       + f" (score = {np.round(score, decimals=2)}," \
-                       + " {} = {:.1e},".format(innov.relation[1].error_metric, power_law_error[var_i, var_j]) \
-                       + f" corr = {np.round(innov.correlation[var_i, var_j], decimals=2)}" \
-                       + f" )"
-                power_law_data.append({'label': pstr,
-                                       'value': power_law})
-                power_law_score_list.append(np.round(score, decimals=2))
-                power_law_error_list.append(power_law_error[var_i, var_j])
-                power_law_corr_list.append(np.round(innov.correlation[var_i, var_j], decimals=2))
                 # Power law list: [String representation, i, j, b_ij, c_ij, correlation, score, mse]
                 power_law_list.append([
                     f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)
@@ -636,15 +564,12 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
                     "{:.1e}".format(power_law_error[var_i, var_j])
                 ])
 
-    for i in range(len(power_law_data)):
-        power_law_data[i]['value'] = str(power_law_data[i]['value'])
-
     # Data frame to be used in the power law table on the display
     power_law_df = pd.DataFrame(data=power_law_list, columns=["Power law",
                                                               "i", "j", "b", "c",
                                                               "Correlation", "Score", "MSE"])
 
-    return power_law_data, [], power_law_df.to_dict('records')
+    return power_law_df.to_dict('records')
 
 
 def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error, const_tol):
@@ -691,24 +616,39 @@ def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error,
 
     return rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq
 
+
+def parse_rule_table_selected_row(rule_table_rows_all, selected_row_indices):
+    if selected_row_indices is None or len(selected_row_indices) == 0:
+        return []
+    # In the power law data table, for each selected row create a list [i, j, b, c] representing xi*xj^b = c
+    selected_rules_from_table = np.zeros([len(selected_row_indices), 4])
+    for i, row_no in enumerate(selected_row_indices):
+        selected_rules_from_table[i] = list(map(rule_table_rows_all[row_no].get, ['i', 'j', 'b', 'c']))
+
+    return selected_rules_from_table
+
+
 @app.callback(
     Output('objective-space-scatter', 'figure'),
     [Input('cross-filter-gen-slider', 'value'),
      Input('inequality-rule-checklist', 'value'),
-     Input('power-law-rule-checklist', 'value'),
+     # Data obtained on clicking a point or selecting one or more points
      Input(component_id='objective-space-scatter', component_property='selectedData'),
-     Input(component_id='objective-space-scatter', component_property='clickData')],
-    [State("maxerror_power", "value"),
-     State("const_tol", "value")]
+     Input(component_id='objective-space-scatter', component_property='clickData'),
+     # Power law table data
+     Input('datatable-row-ids', "derived_virtual_data"),
+     Input('datatable-row-ids', "derived_virtual_selected_rows")
+     ]
 )
-def update_objective_space_scatter_graph(selected_gen, var_grp_str, power_law_str, selected_data, click_data,
-                                         power_law_max_error, const_tol):
+def update_objective_space_scatter_graph(selected_gen, var_grp_str, selected_data, click_data,
+                                         power_law_rows_all, derived_virtual_selected_rows,
+                                         power_law_max_error=0.01, const_tol=1e-3):
     ctx = dash.callback_context
-    power_law = copy.deepcopy(power_law_str)
-    for i, law in enumerate(power_law):
-        power_law[i] = convert_checklist_str_to_list(law)
-        for j in range(len(power_law[i])):
-            power_law[i][j] = float(power_law[i][j])
+
+    # In the power law data table, for each selected row create a list [i, j, b, c] representing xi*xj^b = c
+    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+                                                            selected_row_indices=derived_virtual_selected_rows)
+
     var_grp = copy.deepcopy(var_grp_str)
     for i, grp in enumerate(var_grp):
         var_grp[i] = convert_checklist_str_to_list(var_grp[i])[0].split(' ')
@@ -728,13 +668,6 @@ def update_objective_space_scatter_graph(selected_gen, var_grp_str, power_law_st
             elif selected_data is not None:
                 print("Exception raised")
                 raise dash.exceptions.PreventUpdate
-        elif id_which_triggered == 'power-law-rule-checklist':
-            print(power_law)
-            print(selected_data)
-            # layout_update = False
-            if selected_data is not None and len(power_law) == 0:
-                print("Power law trigger obj graph")
-                raise dash.exceptions.PreventUpdate
         elif id_which_triggered == 'inequality-rule-checklist':
             # layout_update = False
             if selected_data is not None and len(var_grp) == 0:
@@ -752,7 +685,8 @@ def update_objective_space_scatter_graph(selected_gen, var_grp_str, power_law_st
     solution_id_nd = solution_id[rank == 0]
 
     rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
-        = get_rule_compliance(x_nd=x_nd, var_grp=var_grp, curr_gen=nearest_gen_value, power_law=power_law,
+        = get_rule_compliance(x_nd=x_nd, var_grp=var_grp, curr_gen=nearest_gen_value,
+                              power_law=selected_power_law_rows,
                               power_law_max_error=power_law_max_error, const_tol=const_tol)
 
     f_nd_unselected = np.copy(f_nd)
@@ -1017,15 +951,16 @@ def toggle_pause_button(pause_click, title):
      Input(component_id='vrg-include', component_property='n_clicks'),
      Input(component_id='vrg-exclude', component_property='n_clicks'),
      Input(component_id='vrg-reset', component_property='n_clicks'),
-     Input('var-group-selector', 'value')],
+     Input('var-group-selector', 'value'),
+     ],
     [State(component_id='objective-space-scatter', component_property='selectedData'),
-     State('power-law-rule-checklist', 'value'),
-     # State('vrg_vars', 'value'),
-     State("maxerror_power", "value"),
-     State("const_tol", "value")]
+     # Power law table data
+     State('datatable-row-ids', "derived_virtual_data"),
+     State('datatable-row-ids', "derived_virtual_selected_rows")]
 )
 def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var_grp_selected,
-                    selected_data, power_law, power_law_max_error, const_tol):
+                    selected_data, power_law_rows_all, derived_virtual_selected_rows,
+                    power_law_max_error=0.01, const_tol=1e-3):
     """Displays the variable relation graph."""
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
 
@@ -1064,25 +999,17 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
 
     ctx = dash.callback_context
 
+    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+                                                            selected_row_indices=derived_virtual_selected_rows)
     selected_vars = []
     power_law_dict = {}
-    for indx, law_str in enumerate(power_law):
-        law = convert_checklist_str_to_list(law_str)
-        if len(law) == 4:
-            i, j, b, c = law
-            i = int(i)
-            j = int(j)
-            b = float(b)
-            c = float(c)
-            selected_vars.append([i, j])
-
-            power_law = [i, j, b, c]
-
-            rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
-                = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value, power_law=[power_law],
-                                      power_law_max_error=power_law_max_error, const_tol=const_tol)
-            # score = len(rule_compliance_id) / data_arr.shape[0]
-            # power_law_dict[(i, j)] = score
+    for indx, power_law in enumerate(selected_power_law_rows):
+        i, j, b, c = power_law
+        i = int(i)
+        j = int(j)
+        b = float(b)
+        c = float(c)
+        selected_vars.append([i, j])
 
     # VRG edges to be added/removed by the user
     vrg_vars_to_exclude = []
@@ -1233,12 +1160,15 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
 
 @app.callback(
     Output('power-law-graph', 'figure'),
-    [Input('power-law-rule-checklist', 'value'),
-     Input('constant-rule-checklist', 'value')],
+    [Input('constant-rule-checklist', 'value'),
+     # Power law table data
+     Input('datatable-row-ids', "derived_virtual_data"),
+     Input('datatable-row-ids', "derived_virtual_selected_rows")],
     [State('cross-filter-gen-slider', 'value'),
      State("const_tol", "value")]
 )
-def update_power_law_plot(power_law, constant_rule, selected_gen, const_tol):
+def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_selected_rows,
+                          selected_gen, const_tol):
     return_data = {'data': []}
     plaw_evolution_plot = {'data': []}
 
@@ -1251,87 +1181,54 @@ def update_power_law_plot(power_law, constant_rule, selected_gen, const_tol):
     vrg_innov = get_innovization(nearest_gen_value, x_nd, const_tol)
     x_nd_normalized = vrg_innov.normalize_data(x_nd)
     legendgroup = 1
-    plaw_evolution_var_pair = None
-    for indx, law_str in enumerate(power_law):
-        law = convert_checklist_str_to_list(law_str)
-        if len(law) == 4:
-            i, j, b, c = law
-            i = int(i)
-            j = int(j)
-            b = float(b)
-            c = float(c)
+    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+                                                            selected_row_indices=derived_virtual_selected_rows)
+    for indx, power_law in enumerate(selected_power_law_rows):
+        i, j, b, c = power_law
+        i = int(i)
+        j = int(j)
+        b = float(b)
+        c = float(c)
 
-            ll_i, ul_i = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
-            ll_j, ul_j = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
+        ll_i, ul_i = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
+        ll_j, ul_j = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
 
-            xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
-            xi = c / (xj ** b)
-            xj = xj[(xi >= ll_i) & (xi <= ul_i)]
-            xi = xi[(xi >= ll_i) & (xi <= ul_i)]
+        xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
+        xi = c / (xj ** b)
+        xj = xj[(xi >= ll_i) & (xi <= ul_i)]
+        xi = xi[(xi >= ll_i) & (xi <= ul_i)]
 
-            return_data['data'] += \
-                [
-                    go.Scatter(
-                        x=xi,
-                        y=xj,
-                        mode='lines',
-                        name=f"x\u0302{i} * x\u0302{j}".translate(sub) + f"{np.round(b, decimals=2)}".translate(sup) +
-                             f" = {np.round(c, decimals=2)}",
-                        marker={
-                            'size': 10,
-                            'opacity': 0.5,
-                            'line': {'width': 0.5, 'color': 'white'}
-                        },
-                        showlegend=True,
-                        # legendgroup=f'group{legendgroup}'
-                    ),
-                    go.Scatter(
-                        x=x_nd_normalized[:, i],
-                        y=x_nd_normalized[:, j],
-                        mode='markers',
-                        # name=f"Actual x\u0302{i}, x\u0302{j}".translate(sub),
-                        name=f"Offspring ND set".translate(sub),
-                        marker={
-                            # 'size': 10,
-                            'opacity': 0.5,
-                            'symbol': 'x'
-                        },
-                        showlegend=False,
-                        # legendgroup=f'group{legendgroup}'
-                    ),
-                ]
-            # plaw_evolution_plot['data'] = copy.copy(return_data['data'][-2:])
-            plaw_evolution_var_pair = [i, j, np.round(b, decimals=2), np.round(c, decimals=2)]
-
-            # if training_data_gen_indx >= 0:
-            #     training_data_gen = int(all_gen_val[training_data_gen_indx])
-            #     training_data_gen_key = f'gen{training_data_gen}'
-            #     training_data_gen_data = hf[training_data_gen_key]
-            #     x_train_rank = np.array(training_data_gen_data['rank'])
-            #     x_train = np.array(training_data_gen_data['X'])[x_train_rank == 0]
-            #     # print(x_train)
-            #     x_train_normalized = innov.normalize_to_range[0] + (x_train - xl) / (xu - xl) * (
-            #             innov.normalize_to_range[1] - innov.normalize_to_range[0])
-            #     if len(x_train) > 0:
-            #         return_data['data'] += \
-            #             [
-            #                 go.Scatter(
-            #                     x=x_train_normalized[:, i],
-            #                     y=x_train_normalized[:, j],
-            #                     mode='markers',
-            #                     name=f"Training data",
-            #                     marker={
-            #                         # 'size': 10,
-            #                         'opacity': 0.5,
-            #                         'symbol': 'x'
-            #                     },
-            #                     showlegend=True,
-            #                     # legendgroup=f'group{legendgroup}'
-            #                 )
-            #         ]
-            #     else:
-            #         print("Training data not found.")
-        # elif len(law) == 2:
+        return_data['data'] += \
+            [
+                go.Scatter(
+                    x=xi,
+                    y=xj,
+                    mode='lines',
+                    name=f"x\u0302{i} * x\u0302{j}".translate(sub) + f"{np.round(b, decimals=2)}".translate(sup) +
+                         f" = {np.round(c, decimals=2)}",
+                    marker={
+                        'size': 10,
+                        'opacity': 0.5,
+                        'line': {'width': 0.5, 'color': 'white'}
+                    },
+                    showlegend=True,
+                    # legendgroup=f'group{legendgroup}'
+                ),
+                go.Scatter(
+                    x=x_nd_normalized[:, i],
+                    y=x_nd_normalized[:, j],
+                    mode='markers',
+                    # name=f"Actual x\u0302{i}, x\u0302{j}".translate(sub),
+                    name=f"Offspring ND set".translate(sub),
+                    marker={
+                        # 'size': 10,
+                        'opacity': 0.5,
+                        'symbol': 'x'
+                    },
+                    showlegend=False,
+                    # legendgroup=f'group{legendgroup}'
+                ),
+            ]
 
     for indx, law_str in enumerate(constant_rule):
         law = convert_checklist_str_to_list(law_str)
@@ -1598,9 +1495,14 @@ def update_pcp(selected_gen, selected_data):
     Output(component_id='design-fig', component_property='figure'),
     [Input(component_id='objective-space-scatter', component_property='clickData'),
      Input('inequality-rule-checklist', 'value'),
-     Input('power-law-rule-checklist', 'value')]
+     # Power law table data
+     Input('datatable-row-ids', "derived_virtual_data"),
+     Input('datatable-row-ids', "derived_virtual_selected_rows")
+     ]
 )
-def update_design_plot(click_data, var_grp_str, power_law):
+def update_design_plot(click_data,
+                       var_grp_str,
+                       power_law_rows_all, derived_virtual_selected_rows):
     if args.special_flag is None or click_data is None:
         return blank_fig()
     solution_id = click_data['points'][0]['customdata']
@@ -1712,24 +1614,23 @@ def update_design_plot(click_data, var_grp_str, power_law):
                 )
             ]
 
-    for indx, law_str in enumerate(power_law):
-        law = convert_checklist_str_to_list(law_str)
+    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+                                                            selected_row_indices=derived_virtual_selected_rows)
+
+    for indx, power_law in enumerate(selected_power_law_rows):
+        i, j, b, c = power_law
+        i = int(i)
+        j = int(j)
+        member_indx = [i, j]
         member_color = 'red'
-        if len(law) == 4:
-            i, j, b, c = law
-            i = int(i)
-            j = int(j)
-            b = float(b)
-            c = float(c)
-            member_indx = [i, j]
-        elif len(law) == 2:
-            i, mean_i_normalized = law
-            i = int(i)
-            mean_i_normalized = float(mean_i_normalized)
-            member_indx = [i]
-            member_color = 'blue'
-        else:
-            member_indx = []
+        # elif len(law) == 2:
+        #     i, mean_i_normalized = law
+        #     i = int(i)
+        #     mean_i_normalized = float(mean_i_normalized)
+        #     member_indx = [i]
+        #     member_color = 'blue'
+        # else:
+        #     member_indx = []
         for k in member_indx:
             # FIXME: The following condition shouldnt happen. We have to make sure variable numbers are mapped
             #  properly to beams
@@ -1800,34 +1701,36 @@ def update_design_plot(click_data, var_grp_str, power_law):
     return return_data
 
 
-@app.callback(
-    Output(component_id='dummy_rule_rank', component_property='children'),
-    Input(component_id='set_rank_power', component_property='value'),
-    [State('power-law-rule-checklist', 'value'),
-     State(component_id='cross-filter-gen-slider', component_property='value')]
-)
-def set_rule_preference(rank_power_law, power_law, current_gen):
+# @app.callback(
+#     Output(component_id='dummy_rule_rank', component_property='children'),
+#     Input(component_id='set_rank_power', component_property='value'),
+#     [State(component_id='cross-filter-gen-slider', component_property='value'),
+#      # Power law table data
+#      State('datatable-row-ids', "derived_virtual_data"),
+#      State('datatable-row-ids', "derived_virtual_selected_rows"),
+#      ]
+# )
+def set_rule_preference(rank_power_law, current_gen,
+                        power_law_rows_all, derived_virtual_selected_rows):
     # print(f"Triggered, rank = {rank_power_law}")
     if current_gen != gen_arr[-1]:
         return
-    for indx, law_str in enumerate(power_law):
-        law = convert_checklist_str_to_list(law_str)
-        # Power law
-        if len(law) == 4:
-            i, j, b, c = law
-            i = int(i)
-            j = int(j)
-            # b = float(b)
-            # c = float(c)
-            with open(os.path.join(args.result_path, USER_INTERACT_DIR,
-                                   f'{POWER_LAW_RANK_FILE_PREFIX}{current_gen}'), 'a') as fp:
-                fp.write(f'{rank_power_law},{i},{j}\n')
+    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+                                                            selected_row_indices=derived_virtual_selected_rows)
+    for indx, power_law in enumerate(selected_power_law_rows):
+        i, j, b, c = power_law
+        i = int(i)
+        j = int(j)
+
+        with open(os.path.join(args.result_path, USER_INTERACT_DIR,
+                               f'{POWER_LAW_RANK_FILE_PREFIX}{current_gen}'), 'a') as fp:
+            fp.write(f'{rank_power_law},{i},{j}\n')
         # Constant rule
-        elif len(law) == 2:
-            i, const_c = int(law[0]), float(law[1])
-            with open(os.path.join(args.result_path, USER_INTERACT_DIR,
-                                   f'{CONSTANT_RULE_RANK_FILE_PREFIX}{current_gen}'), 'a') as fp:
-                fp.write(f'{rank_power_law},{i}\n')
+        # elif len(law) == 2:
+        #     i, const_c = int(law[0]), float(law[1])
+        #     with open(os.path.join(args.result_path, USER_INTERACT_DIR,
+        #                            f'{CONSTANT_RULE_RANK_FILE_PREFIX}{current_gen}'), 'a') as fp:
+        #         fp.write(f'{rank_power_law},{i}\n')
 
 
 if __name__ == '__main__':
