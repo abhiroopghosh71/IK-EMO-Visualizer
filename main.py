@@ -21,7 +21,7 @@ from innovization.vrg_innovization import VRGInnovization
 from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
     POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
 # from utils.general import get_repair_agent
-from query import DemoQuery, QUERY, CSVQuery
+from query import DemoQuery, QUERY, JSONQuery
 
 from utils.file_io import open_file_selection_dialog
 from utils.user_input import get_argparser
@@ -40,22 +40,14 @@ SAVE_ICON = '\U0001F4BE'
 args = get_argparser().parse_args()
 
 if args.X_file is not None and args.F_file is not None and args.params_file is not None:
-    query = CSVQuery(x_file=args.X_file, f_file=args.F_file,
-                     param_file=args.params_file)
+    query = JSONQuery(x_file=args.X_file, f_file=args.F_file,
+                      param_file=args.params_file)
 else:
     query = DemoQuery(args.result_path)
 
-# if args.result_path is None:
-#     args.result_path = open_file_selection_dialog(multi_file=False, title="Select optimization history file",
-#                                                   initialdir=".")
-
-hdf_file_original = os.path.join(args.result_path, 'optim_state.hdf5')
-# if os.path.exists(hdf_file_original):
 temp_dir = tempfile.gettempdir()
 temp_path = os.path.join(temp_dir, 'optim_state_temp.hdf5')
 
-# hdf_file = temp_path
-hdf_file = hdf_file_original
 gen_arr, latest_innov_gen_key, latest_innov_gen, xl, xu, ignore_vars = [], None, None, [], [], []
 
 max_gen = query.get(QUERY['MAX_ITER'])
@@ -74,14 +66,14 @@ def update_global_parameters():
 
 update_global_parameters()
 default_pause_play_icon = PAUSE_ICON
-if os.path.exists(os.path.join(args.result_path, '.pauserun')):
-    default_pause_play_icon = PLAY_ICON
-
-
-if (latest_innov_gen is not None) and (latest_innov_gen > 0):
-    with open(os.path.join(args.result_path, INNOVIZATION_DIR,
-                           f'innov_{latest_innov_gen_key}.pkl'), 'rb') as innov_fp:
-        latest_innov = pickle.load(innov_fp)
+# if os.path.exists(os.path.join(args.result_path, '.pauserun')):
+#     default_pause_play_icon = PLAY_ICON
+#
+#
+# if (latest_innov_gen is not None) and (latest_innov_gen > 0):
+#     with open(os.path.join(args.result_path, INNOVIZATION_DIR,
+#                            f'innov_{latest_innov_gen_key}.pkl'), 'rb') as innov_fp:
+#         latest_innov = pickle.load(innov_fp)
 
 
 def handler(signal_received, frame):
@@ -280,10 +272,10 @@ def refresh_dashboard(n_clicks, slider_val):
 
 def get_innovization(current_gen, data_arr, const_tol, rerun=False):
     # Learn power laws and constant vars from selected data.
-    innov_file = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}.pkl')
+    # innov_file = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}.pkl')
     # For the generations where power laws that were not learned, the learning is performed here and the results are
     # stored in a pickled file. They have a '_post' suffix after the filename to differentiate it.
-    innov_file_post = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}_post.pkl')
+    # innov_file_post = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}_post.pkl')
     # if os.path.exists(innov_file) and not rerun:
     #     with open(innov_file, 'rb') as fp:
     #         innov = pickle.load(fp)
@@ -292,7 +284,7 @@ def get_innovization(current_gen, data_arr, const_tol, rerun=False):
     #         innov = pickle.load(fp)
     if True:
         # var_groups = [np.arange(data_arr.shape[1]).tolist()]
-        var_groups = [np.arange(5).tolist()]
+        var_groups = [np.arange(data_arr.shape[1]).tolist()]
         # with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
             # Original begin
             # current_gen_data = hf[f'gen{current_gen}']
@@ -305,8 +297,8 @@ def get_innovization(current_gen, data_arr, const_tol, rerun=False):
                                 xl=np.array(xl), xu=np.array(xu), power_law_normalized=True, agent_names=['power_law_rep_sig_0'])
         innov.learn(data_arr)
         # These innovization rules are learned just now. So write them to the results folder with a '_post' suffix
-        with open(innov_file_post, 'wb') as fp:
-            pickle.dump(innov, fp)
+        # with open(innov_file_post, 'wb') as fp:
+            # pickle.dump(innov, fp)
 
     return innov
 
@@ -960,7 +952,7 @@ def toggle_pause_button(pause_click, title):
 )
 def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var_grp_selected,
                     selected_data, power_law_rows_all, derived_virtual_selected_rows,
-                    power_law_max_error=0.01, const_tol=1e-3):
+                    power_law_max_error=0.1, const_tol=1e-3):
     """Displays the variable relation graph."""
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
 
@@ -1491,214 +1483,214 @@ def update_pcp(selected_gen, selected_data):
     return return_data
 
 
-@app.callback(
-    Output(component_id='design-fig', component_property='figure'),
-    [Input(component_id='objective-space-scatter', component_property='clickData'),
-     Input('inequality-rule-checklist', 'value'),
-     # Power law table data
-     Input('datatable-row-ids', "derived_virtual_data"),
-     Input('datatable-row-ids', "derived_virtual_selected_rows")
-     ]
-)
-def update_design_plot(click_data,
-                       var_grp_str,
-                       power_law_rows_all, derived_virtual_selected_rows):
-    if args.special_flag is None or click_data is None:
-        return blank_fig()
-    solution_id = click_data['points'][0]['customdata']
-    # print("solution_id=", solution_id)
-    if solution_id == "":
-        return {'data': [], 'layout': None}
-    print("Selected data for design plot ", solution_id)
-
-    with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
-        current_gen, pop_indx, rank = solution_id.split("_")
-        current_gen_data = hf[f'gen{current_gen}']
-        x = np.array(current_gen_data['X'])
-    x_click_selected = x[int(pop_indx), :]
-
-    # KLUGE: VERY BIG KLUGE!!
-    n_var = x.shape[1]
-    if n_var == 279 or n_var == 86:
-        n_shape_var = 19
-    elif n_var == 579 or n_var == 176:
-        n_shape_var = 39
-    elif n_var == 879 or n_var == 266:
-        n_shape_var = 59
-    elif n_var == 129: # or n_var == 266:
-        n_shape_var = 9
-    else:
-        return {'data': [], 'layout': None}
-
-    from scalable_truss.truss.generate_truss import gen_truss
-    from scalable_truss.truss.truss_problem_general import TrussProblemGeneral
-    if n_var == 129 or n_var == 279 or n_var == 579 or n_var == 879:
-        symmetry = ()
-        shape_var = x_click_selected[-n_shape_var:]
-        shape_var[:n_shape_var // 2 + 1] = np.sort(shape_var[:n_shape_var // 2 + 1])
-        # shape_var[n_shape_var//2 + 1:] = np.flip(np.sort(shape_var[n_shape_var//2 + 1:]))
-        shape_var[n_shape_var // 2 + 1:] = np.flip(
-            shape_var[:n_shape_var // 2 + 1] + 0.001 + np.random.random() * 0.001)[1:]
-        shape_var[n_shape_var // 2] = (shape_var[n_shape_var // 2] + shape_var[n_shape_var // 2 - 1]) / 2
-        coordinates, connectivity, fixed_nodes, load_nodes, member_groups = gen_truss(n_shape_nodes=n_shape_var)
-        coordinates = TrussProblemGeneral.set_coordinate_matrix(
-            coordinates=coordinates, shape_var=shape_var,
-            n_shape_var=n_shape_var, shape_var_mode='l', symmetry=symmetry
-        )
-    else:
-        symmetry = ('xz', 'yz')
-        shape_var = x_click_selected[-(n_shape_var // 2 + 1):]
-        shape_var = np.sort(shape_var)
-        coordinates, connectivity, fixed_nodes, load_nodes, member_groups = gen_truss(n_shape_nodes=n_shape_var)
-        coordinates = TrussProblemGeneral.set_coordinate_matrix(
-            coordinates=coordinates, shape_var=shape_var,
-            n_shape_var=n_shape_var, shape_var_mode='l', symmetry=symmetry
-        )
-
-    return_data = {'data': []}
-
-    return_data['data'] += [
-        go.Scatter3d(
-            x=coordinates[:, 0],
-            y=coordinates[:, 1],
-            z=coordinates[:, 2],
-            mode='markers',
-            # name='Nodes',
-            marker={
-                'size': 2,
-                'opacity': 0.5,
-                'color': 'blue',
-                # 'line': {'width': 0.5, 'color': 'blue'}
-            },
-        )
-    ]
-
-    for i, nodes in enumerate(connectivity):
-        return_data['data'] += [
-            go.Scatter3d(
-                x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
-                y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
-                z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
-                mode='lines',
-                line=dict(
-                    color='black',
-                    width=1),
-                # name='Population',
-                # marker={
-                #     'size': 2,
-                #     'opacity': 0.5,
-                #     'color': 'blue',
-                #     # 'line': {'width': 0.5, 'color': 'blue'}
-                # },
-            )
-        ]
-    var_grp = copy.deepcopy(var_grp_str)
-    for i, grp in enumerate(var_grp):
-        var_grp[i] = convert_checklist_str_to_list(var_grp[i])[0].split(' ')
-        for j in range(len(var_grp[i])):
-            var_grp[i][j] = int(var_grp[i][j])
-    for indx, grp in enumerate(var_grp):
-        member_indx = [grp[0], grp[1]]
-        for k in member_indx:
-            member_color = 'blue'
-            nodes = connectivity[k, :]
-            return_data['data'] += [
-                go.Scatter3d(
-                    x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
-                    y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
-                    z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
-                    mode='lines',
-                    line=dict(
-                        color=member_color,
-                        width=8),
-                )
-            ]
-
-    selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
-                                                            selected_row_indices=derived_virtual_selected_rows)
-
-    for indx, power_law in enumerate(selected_power_law_rows):
-        i, j, b, c = power_law
-        i = int(i)
-        j = int(j)
-        member_indx = [i, j]
-        member_color = 'red'
-        # elif len(law) == 2:
-        #     i, mean_i_normalized = law
-        #     i = int(i)
-        #     mean_i_normalized = float(mean_i_normalized)
-        #     member_indx = [i]
-        #     member_color = 'blue'
-        # else:
-        #     member_indx = []
-        for k in member_indx:
-            # FIXME: The following condition shouldnt happen. We have to make sure variable numbers are mapped
-            #  properly to beams
-            connectivity_indx = k
-            # If shape vars are selected, highlight the corresponding members in a different color
-            if k >= connectivity.shape[0]:
-                connectivity_indx = member_groups['straight_xz'][1][k - connectivity.shape[0]]
-                member_color = 'green'
-            nodes = connectivity[connectivity_indx, :]
-            return_data['data'] += [
-                go.Scatter3d(
-                    x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
-                    y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
-                    z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
-                    mode='lines',
-                    line=dict(
-                        color=member_color,
-                        width=8),
-                )
-            ]
-
-    return_data['layout'] = go.Layout(
-        # width=1200,
-        scene_camera=dict(
-            up=dict(x=0, y=0, z=1),
-            center=dict(x=0, y=0, z=0),
-            eye=dict(x=3, y=3, z=1),
-        ),
-        margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
-        # aspectratio=dict(x=1, y=0.5, z=0.5),
-        scene=go.layout.Scene(aspectratio=dict(x=3, y=1, z=1),
-                              xaxis_visible=False,
-                              yaxis_visible=False,
-                              zaxis_visible=False,
-                              xaxis_showticklabels=False,
-                              yaxis_showticklabels=False,
-                              zaxis_showticklabels=False),
-        showlegend=False,
-        xaxis={
-            # 'title': 'x\u0302i'.translate(sub_ij),
-            # 'titlefont': {'size': 18},
-            # 'tickfont': {'size': 16},
-            # # 'showline': True,
-            # 'linecolor': 'black',
-            # 'zeroline': False,
-            # 'mirror': True,
-            # 'type': 'linear',
-            # 'autorange': True,
-            # 'automargin': True,
-            # 'rangemode': 'tozero',
-            # 'automargin': True,
-            'range': [0, np.max(coordinates[:, 0] + 1)],
-            # 'visible': False,
-            # 'showticklabels': False,
-        },
-        yaxis={
-            # 'automargin': True,
-            'range': [-5, np.max(coordinates[:, 1] + 10)],
-            # 'visible': False,
-            # 'showticklabels': False,
-        },
-        # zaxis={
-        # 'automargin': True,
-        #     'range': [np.min(coordinates[:, 2]) - 5, np.max(coordinates[:, 2] + 5)],
-        # }
-    )
-
-    return return_data
+# @app.callback(
+#     Output(component_id='design-fig', component_property='figure'),
+#     [Input(component_id='objective-space-scatter', component_property='clickData'),
+#      Input('inequality-rule-checklist', 'value'),
+#      # Power law table data
+#      Input('datatable-row-ids', "derived_virtual_data"),
+#      Input('datatable-row-ids', "derived_virtual_selected_rows")
+#      ]
+# )
+# def update_design_plot(click_data,
+#                        var_grp_str,
+#                        power_law_rows_all, derived_virtual_selected_rows):
+#     if args.special_flag is None or click_data is None:
+#         return blank_fig()
+#     solution_id = click_data['points'][0]['customdata']
+#     # print("solution_id=", solution_id)
+#     if solution_id == "":
+#         return {'data': [], 'layout': None}
+#     print("Selected data for design plot ", solution_id)
+#
+#     with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
+#         current_gen, pop_indx, rank = solution_id.split("_")
+#         current_gen_data = hf[f'gen{current_gen}']
+#         x = np.array(current_gen_data['X'])
+#     x_click_selected = x[int(pop_indx), :]
+#
+#     # KLUGE: VERY BIG KLUGE!!
+#     n_var = x.shape[1]
+#     if n_var == 279 or n_var == 86:
+#         n_shape_var = 19
+#     elif n_var == 579 or n_var == 176:
+#         n_shape_var = 39
+#     elif n_var == 879 or n_var == 266:
+#         n_shape_var = 59
+#     elif n_var == 129: # or n_var == 266:
+#         n_shape_var = 9
+#     else:
+#         return {'data': [], 'layout': None}
+#
+#     from scalable_truss.truss.generate_truss import gen_truss
+#     from scalable_truss.truss.truss_problem_general import TrussProblemGeneral
+#     if n_var == 129 or n_var == 279 or n_var == 579 or n_var == 879:
+#         symmetry = ()
+#         shape_var = x_click_selected[-n_shape_var:]
+#         shape_var[:n_shape_var // 2 + 1] = np.sort(shape_var[:n_shape_var // 2 + 1])
+#         # shape_var[n_shape_var//2 + 1:] = np.flip(np.sort(shape_var[n_shape_var//2 + 1:]))
+#         shape_var[n_shape_var // 2 + 1:] = np.flip(
+#             shape_var[:n_shape_var // 2 + 1] + 0.001 + np.random.random() * 0.001)[1:]
+#         shape_var[n_shape_var // 2] = (shape_var[n_shape_var // 2] + shape_var[n_shape_var // 2 - 1]) / 2
+#         coordinates, connectivity, fixed_nodes, load_nodes, member_groups = gen_truss(n_shape_nodes=n_shape_var)
+#         coordinates = TrussProblemGeneral.set_coordinate_matrix(
+#             coordinates=coordinates, shape_var=shape_var,
+#             n_shape_var=n_shape_var, shape_var_mode='l', symmetry=symmetry
+#         )
+#     else:
+#         symmetry = ('xz', 'yz')
+#         shape_var = x_click_selected[-(n_shape_var // 2 + 1):]
+#         shape_var = np.sort(shape_var)
+#         coordinates, connectivity, fixed_nodes, load_nodes, member_groups = gen_truss(n_shape_nodes=n_shape_var)
+#         coordinates = TrussProblemGeneral.set_coordinate_matrix(
+#             coordinates=coordinates, shape_var=shape_var,
+#             n_shape_var=n_shape_var, shape_var_mode='l', symmetry=symmetry
+#         )
+#
+#     return_data = {'data': []}
+#
+#     return_data['data'] += [
+#         go.Scatter3d(
+#             x=coordinates[:, 0],
+#             y=coordinates[:, 1],
+#             z=coordinates[:, 2],
+#             mode='markers',
+#             # name='Nodes',
+#             marker={
+#                 'size': 2,
+#                 'opacity': 0.5,
+#                 'color': 'blue',
+#                 # 'line': {'width': 0.5, 'color': 'blue'}
+#             },
+#         )
+#     ]
+#
+#     for i, nodes in enumerate(connectivity):
+#         return_data['data'] += [
+#             go.Scatter3d(
+#                 x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
+#                 y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
+#                 z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
+#                 mode='lines',
+#                 line=dict(
+#                     color='black',
+#                     width=1),
+#                 # name='Population',
+#                 # marker={
+#                 #     'size': 2,
+#                 #     'opacity': 0.5,
+#                 #     'color': 'blue',
+#                 #     # 'line': {'width': 0.5, 'color': 'blue'}
+#                 # },
+#             )
+#         ]
+#     var_grp = copy.deepcopy(var_grp_str)
+#     for i, grp in enumerate(var_grp):
+#         var_grp[i] = convert_checklist_str_to_list(var_grp[i])[0].split(' ')
+#         for j in range(len(var_grp[i])):
+#             var_grp[i][j] = int(var_grp[i][j])
+#     for indx, grp in enumerate(var_grp):
+#         member_indx = [grp[0], grp[1]]
+#         for k in member_indx:
+#             member_color = 'blue'
+#             nodes = connectivity[k, :]
+#             return_data['data'] += [
+#                 go.Scatter3d(
+#                     x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
+#                     y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
+#                     z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
+#                     mode='lines',
+#                     line=dict(
+#                         color=member_color,
+#                         width=8),
+#                 )
+#             ]
+#
+#     selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
+#                                                             selected_row_indices=derived_virtual_selected_rows)
+#
+#     for indx, power_law in enumerate(selected_power_law_rows):
+#         i, j, b, c = power_law
+#         i = int(i)
+#         j = int(j)
+#         member_indx = [i, j]
+#         member_color = 'red'
+#         # elif len(law) == 2:
+#         #     i, mean_i_normalized = law
+#         #     i = int(i)
+#         #     mean_i_normalized = float(mean_i_normalized)
+#         #     member_indx = [i]
+#         #     member_color = 'blue'
+#         # else:
+#         #     member_indx = []
+#         for k in member_indx:
+#             # FIXME: The following condition shouldnt happen. We have to make sure variable numbers are mapped
+#             #  properly to beams
+#             connectivity_indx = k
+#             # If shape vars are selected, highlight the corresponding members in a different color
+#             if k >= connectivity.shape[0]:
+#                 connectivity_indx = member_groups['straight_xz'][1][k - connectivity.shape[0]]
+#                 member_color = 'green'
+#             nodes = connectivity[connectivity_indx, :]
+#             return_data['data'] += [
+#                 go.Scatter3d(
+#                     x=[coordinates[int(nodes[0] - 1), 0], coordinates[int(nodes[1] - 1), 0]],
+#                     y=[coordinates[int(nodes[0] - 1), 1], coordinates[int(nodes[1] - 1), 1]],
+#                     z=[coordinates[int(nodes[0] - 1), 2], coordinates[int(nodes[1] - 1), 2]],
+#                     mode='lines',
+#                     line=dict(
+#                         color=member_color,
+#                         width=8),
+#                 )
+#             ]
+#
+#     return_data['layout'] = go.Layout(
+#         # width=1200,
+#         scene_camera=dict(
+#             up=dict(x=0, y=0, z=1),
+#             center=dict(x=0, y=0, z=0),
+#             eye=dict(x=3, y=3, z=1),
+#         ),
+#         margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
+#         # aspectratio=dict(x=1, y=0.5, z=0.5),
+#         scene=go.layout.Scene(aspectratio=dict(x=3, y=1, z=1),
+#                               xaxis_visible=False,
+#                               yaxis_visible=False,
+#                               zaxis_visible=False,
+#                               xaxis_showticklabels=False,
+#                               yaxis_showticklabels=False,
+#                               zaxis_showticklabels=False),
+#         showlegend=False,
+#         xaxis={
+#             # 'title': 'x\u0302i'.translate(sub_ij),
+#             # 'titlefont': {'size': 18},
+#             # 'tickfont': {'size': 16},
+#             # # 'showline': True,
+#             # 'linecolor': 'black',
+#             # 'zeroline': False,
+#             # 'mirror': True,
+#             # 'type': 'linear',
+#             # 'autorange': True,
+#             # 'automargin': True,
+#             # 'rangemode': 'tozero',
+#             # 'automargin': True,
+#             'range': [0, np.max(coordinates[:, 0] + 1)],
+#             # 'visible': False,
+#             # 'showticklabels': False,
+#         },
+#         yaxis={
+#             # 'automargin': True,
+#             'range': [-5, np.max(coordinates[:, 1] + 10)],
+#             # 'visible': False,
+#             # 'showticklabels': False,
+#         },
+#         # zaxis={
+#         # 'automargin': True,
+#         #     'range': [np.min(coordinates[:, 2]) - 5, np.max(coordinates[:, 2] + 5)],
+#         # }
+#     )
+#
+#     return return_data
 
 
 # @app.callback(

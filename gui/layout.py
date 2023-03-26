@@ -39,17 +39,24 @@ def construct_layout(args, gen_arr, query):
                                                   "i", "j", "b", "c",
                                                   "Corr.", "Score", "MSE"])
     app_mode = args.app_mode
-    default_pause_play_icon = PAUSE_ICON
-    if os.path.exists(os.path.join(args.result_path, '.pauserun')):
-        default_pause_play_icon = PLAY_ICON
+    # default_pause_play_icon = PAUSE_ICON
+    # if os.path.exists(os.path.join(args.result_path, '.pauserun')):
+    #     default_pause_play_icon = PLAY_ICON
 
     config = {"toImageButtonOptions": {"width": None, "height": None, "format": 'svg'}}
     config_heatmap = {"toImageButtonOptions": {"width": None, "height": None, "format": 'svg'}, 'editable': True}
     html_layout = [
         html.Div([
-            html.H1(children='IK-EMO Visualizer v0.1', style={'font-weight': 'normal'}),
+            html.Div([
+                html.H1(children='IK-EMO Visualizer',
+                        style={'font-weight': 'normal'})],
+                        style={'display': 'inline-block'}),
+            html.Div([
+                html.H5(children='v0.2.0.0',
+                        style={'font-weight': 'normal'})
+                ], style={'display': 'inline-block', 'vertical-align': 'bottom'}),
         ],
-            style={'padding': '30px 0px 20px 0px', 'background-color': '#5F4F93',  # '#059862',
+            style={'padding': '10px 0px 10px 0px', 'background-color': '#5F4F93',  # '#059862',
                    'margin': '0px 0px 20px 0px',
                    'border-bottom': '1px #EBEDEF solid',
                    # 'font-family': "Arial",
@@ -156,7 +163,7 @@ def construct_layout(args, gen_arr, query):
                                     )
                                 ], style={'padding': '0px 0px 0px 0px'}, id='slider-div')
                             ]),
-                    dcc.Tab(label='Parallel Coordinate Plot', value='pcp-plot', style=tab_style,
+                    dcc.Tab(label='PCP', value='pcp-plot', style=tab_style,
                             selected_style=tab_selected_style, children=[
                                 html.Div([
                                     html.Div([
@@ -164,15 +171,25 @@ def construct_layout(args, gen_arr, query):
                                                   hoverData={'points': [{'customdata': ''}]}, config=config,
                                                   # style={'width': '200px'}
                                                   )
-                                            ], style={'min-width': '1000%', 'width': '1000%'})
+                                            ], style={'min-width': '100%', 'width': '100%'})
                                 ], style={'overflow': 'scroll'})
                             ]),
+                    dcc.Tab(label='Design', value='selected-design', style=tab_style,
+                            selected_style=tab_selected_style, disabled=False, children=[
+                                html.Div([
+                                    dcc.Graph(id='design-fig', figure=blank_fig(),
+                                              hoverData={'points': [{'customdata': ''}]}, config=config,
+                                              style={'width': '100%'})
+                                ], style={'width': '100%', 'padding': '0px 20px 20px 20px',
+                                          'border': '1px solid #969696', 'border-radius': '5px',
+                                          'margin': '20px 20px 20px 20px', 'background-color': 'white'})
+                                ])
                 ], style={'display': 'inline-block',
                           'vertical-align': 'top',
                           'padding': '0 0 0 10px'}),
 
 
-            ], style={'display': 'inline-block', 'padding': '20px 20px 0px 20px',
+            ], style={'display': 'inline-block', 'padding': '10px 10px 0px 10px',
                       'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
                       'background-color': 'white',
                       'margin': '0px 0px 10px 10px'},
@@ -202,7 +219,7 @@ def construct_layout(args, gen_arr, query):
                                             page_action='native',
                                             page_current=0,
                                             page_size=10,
-                                            hidden_columns=["i", "j", "b", "c"],
+                                            hidden_columns=[],
                                             style_as_list_view=False,
                                             style_cell={'padding': '5px'},
                                             style_header={
@@ -215,8 +232,13 @@ def construct_layout(args, gen_arr, query):
                                                     'textAlign': 'left'
                                                 } for c in ['Power law']
                                             ],
+                                            css=[
+                                                {'selector': '.dash-spreadsheet-menu',
+                                                 'rule': 'position:absolute;bottom:-30px'},  # move below table
+                                            ]
                                         ),
-                                    ], style={'width': '25%', 'font-size': '1.75em'})], className='ruleList'),
+                                    ], style={'font-size': '1.75em',
+                                              'overflow': 'scroll'})], className='ruleList'),
                         dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([  # Bordered region
@@ -356,48 +378,13 @@ def construct_layout(args, gen_arr, query):
                                   'padding': '0 0 0 10px'}),
 
 
-            ], style={'width': '69%', 'padding': '20px 20px 20px 20px', 'display': 'inline-block',
+            ], style={'display': 'inline-block',
                       'vertical-align': 'top',
                       'overflow': 'scroll',
                       'margin': '0px 10px 10px 10px',
                       'border': '1px solid #969696', 'border-radius': '5px', 'background-color': 'white'},
                 className='col')
-            ], className='row'),
-
-        html.Div([
-            html.Div(id='dummy_rule_rank'),
-            # Padding: top right bottom left
-            html.Div([
-                # html.Div([html.H2(children='Parallel coordinate plot (PCP)',
-                #                   id='pcp-heading', className='widgetTitle')],
-                #          style={'padding': '0px 20px 20px 20px', 'color': '#3C4B64'}),
-                # html.Div([
-                #     html.Div([dcc.Graph(id='pcp-interactive',
-                #                         hoverData={'points': [{'customdata': ''}]}, config=config)],
-                #              style={'width': '1000%'}
-                #              )
-                ], style={'overflow': 'scroll', 'border': '1px solid #969696',
-                          'border-radius': '5px',
-                          'background-color': 'white', 'padding': '0px 20px 20px 10px',
-                          'margin': '0px 20px 20px 20px'}),
-                html.Div([html.H2(children="Selected design", id='design-fig-heading', className='widgetTitle'),
-                          dcc.Loading(
-                              id="loading-design",
-                              type="default",
-                              children=html.Div(id="loading-output-1"),
-                          ),
-                          ],
-                         style={'padding': '20px 20px 0px 20px', 'color': '#3C4B64'}),
-                html.Div([
-                    dcc.Graph(id='design-fig', figure=blank_fig(),
-                              hoverData={'points': [{'customdata': ''}]}, config=config, style={'width': '100%'})
-                ], style={'width': '100%', 'padding': '0px 20px 20px 20px',
-                          'border': '1px solid #969696', 'border-radius': '5px',
-                          'margin': '20px 20px 20px 20px', 'background-color': 'white'}),
-            ], style={'width': '30%', 'display': 'inline-block', 'float': 'center', 'padding': '20px 20px 20px 20px',
-                      'vertical-align': 'top', 'background-color': 'white',
-                      'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 20px 20px 0px',
-                      'overflow': 'scroll', 'height': '83%'}),
+            ], className='row')
 
             # Historical data
             # html.Div([
@@ -425,27 +412,6 @@ def construct_layout(args, gen_arr, query):
             #           'vertical-align': 'top', 'background-color': 'white',
             #           'border': '1px solid #969696', 'border-radius': '5px', 'margin': '0px 0px 20px 20px',
             #           'overflow': 'scroll', 'height': '83%'}),
-
-
-            # Shows the rules found by IK-EMO
-            # html.Div([
-                # html.Div([
-                #         # html.Div([dcc.Graph(id='design-fig',
-                #         #                     hoverData={'points': [{'customdata': ''}]}, config=config)],
-                #         #          style={'padding': '20px 20px 20px 20px',  # 'background-color': 'white',
-                #         #                 'margin': '0px 0px 20px 0px', 'border-bottom': '1px #EBEDEF solid',
-                #         #                 'background-color': 'white'},
-                #         #          ),
-                #         html.H2(children="Selected design", id='design-fig-heading', className='widgetTitle',
-                #                 style={'width': '60%',
-                #                        'padding': '20px 20px 20px 20px', 'color': '#3C4B64'}),
-                #         dcc.Graph(id='design-fig', figure=blank_fig(),
-                #                   hoverData={'points': [{'customdata': ''}]}, config=config)
-                #     ], style={'width': '100%', 'display': 'inline-block', 'padding': '0px 20px 20px 20px',
-                #               'vertical-align': 'top', 'border': '1px solid #969696', 'border-radius': '5px',
-                #               'margin': '0px 20px 20px 0px', 'background-color': 'white', 'height': '100%'}),
-
-            # ], style={'width': '34%', 'height': '91%', 'display': 'inline-block'})
         ]
 
     return html_layout

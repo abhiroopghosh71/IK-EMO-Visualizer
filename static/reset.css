@@ -18,17 +18,24 @@ body
 
 .col {
   flex: 1; /* additionally, equal width */
-  padding: 1em;
+  /*padding: 1em;*/
   border: solid;
     overflow: auto;
-    flex-direction: row;
   -webkit-flex-direction: row;
+  -moz-flex-direction: row;
+  -ms-flex-direction: row;
+  -o-flex-direction: row;
+    flex-direction: row;
+    padding: 10px 10px 0px 10px;
 }
 .col-left {
   flex-basis: 25%;
-    overflow: scroll;
-    flex-direction: row;
+    overflow: auto;
   -webkit-flex-direction: row;
+  -moz-flex-direction: row;
+  -ms-flex-direction: row;
+  -o-flex-direction: row;
+    flex-direction: row;
 }
 .content {
     flex: 1;
@@ -69,6 +76,7 @@ H2.widgetTitle
     border-radius: 5px;
     background-color: white;
     padding: 20px 20px 20px 20px;
+    overflow: scroll;
 }
 
 *:before, *:after {
