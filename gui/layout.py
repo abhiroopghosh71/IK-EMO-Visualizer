@@ -9,6 +9,7 @@ import pandas as pd
 from query import QUERY
 
 from utils.postprocess.statistical_performance import calc_hv
+from gui.dcc_elements import get_dash_rule_table, get_rule_table_checklists
 
 PLAY_ICON = '\u23F5'
 STOP_ICON = "\u23F9"
@@ -201,44 +202,14 @@ def construct_layout(args, gen_arr, query):
                         dcc.Tab(label='Power laws', value='power-law-list', style=tab_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([
-                                        dash_table.DataTable(
-                                            id='datatable-row-ids',
-                                            columns=[
-                                                {'name': i, 'id': i, 'deletable': False} for i in power_law_df.columns
-                                                # omit the id column
-                                                if i != 'id'
-                                            ],
-                                            data=power_law_df.to_dict('records'),
-                                            editable=True,
-                                            filter_action="native",
-                                            sort_action="native",
-                                            sort_mode='multi',
-                                            row_selectable='multi',
-                                            row_deletable=False,
-                                            selected_rows=[],
-                                            page_action='native',
-                                            page_current=0,
-                                            page_size=10,
-                                            hidden_columns=[],
-                                            style_as_list_view=False,
-                                            style_cell={'padding': '5px'},
-                                            style_header={
-                                                # 'backgroundColor': 'white',
-                                                'fontWeight': 'bold'
-                                            },
-                                            style_cell_conditional=[
-                                                {
-                                                    'if': {'column_id': c},
-                                                    'textAlign': 'left'
-                                                } for c in ['Power law']
-                                            ],
-                                            css=[
-                                                {'selector': '.dash-spreadsheet-menu',
-                                                 'rule': 'position:absolute;bottom:-30px'},  # move below table
-                                            ]
-                                        ),
-                                    ], style={'font-size': '1.75em',
-                                              'overflow': 'scroll'})], className='ruleList'),
+                                        dcc.Checklist(
+                                            id='power-law-select-all',
+                                            options=get_rule_table_checklists(),
+                                            value=['normalized_rule'],
+                                            inline=True
+                                        )]),
+                                    get_dash_rule_table(rule_df=power_law_df,
+                                                        table_id='datatable-row-ids')], className='ruleList'),
                         dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([  # Bordered region
@@ -511,12 +482,6 @@ def update_hv_progress(gen_list, query):
 
 
 def get_current_gen_data(selected_gen, gen_arr, query):
-    # all_gen_val = gen_arr
-    # Original begin
-    # nearest_gen_value = int(all_gen_val[np.abs(all_gen_val - selected_gen).argmin()])
-    # obj_label = query.get(QUERY['OBJ_LABELS'])
-    # obj, x, rank, constr = query.get_iter_data(nearest_gen_value, 'F', 'X', 'rank', 'G')
-    # Original end
     nearest_gen_value = gen_arr[0]
     x = query.get('X')
     obj = query.get('F')

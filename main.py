@@ -51,6 +51,7 @@ temp_path = os.path.join(temp_dir, 'optim_state_temp.hdf5')
 gen_arr, latest_innov_gen_key, latest_innov_gen, xl, xu, ignore_vars = [], None, None, [], [], []
 
 max_gen = query.get(QUERY['MAX_ITER'])
+power_law_max_error = 1
 
 
 def update_global_parameters():
@@ -171,134 +172,14 @@ def refresh_dashboard(n_clicks, slider_val):
     return slider
 
 
-# @app.callback(
-#     [Output(component_id='inequality-rule-checklist', component_property='options'),
-#      Output(component_id='inequality-rule-checklist', component_property='value')],
-#     [Input('cross-filter-gen-slider', 'value'),
-#      Input("minscore_ineq", "value"),
-#      Input("mincorr_ineq", "value"),
-#      Input("varsperrule_ineq", "value"),
-#      Input(component_id='objective-space-scatter', component_property='selectedData'),
-#     State(component_id='inequality-rule-checklist', component_property='options')
-# )
-# def ineq_rule_checklist(selected_gen, minscore_ineq, mincorr_ineq, vars_per_rule, selected_data,
-#                         checklist):
-#     ctx = dash.callback_context
-#
-#     if ctx.triggered:
-#         print("Inequality law triggers")
-#         # print(ctx.triggered)
-#         id_which_triggered = ctx.triggered[0]['prop_id'].split('.')[0]
-#         print(id_which_triggered)
-#         if id_which_triggered == 'objective-space-scatter':
-#             if selected_data is not None:
-#                 print("Inequality law checklist triggered by selected data")
-#                 # raise dash.exceptions.PreventUpdate
-#             return checklist, []
-#     # print("minscore_ineq = ", minscore_ineq)
-#     # print("mincorr_power = ", mincorr_ineq)
-#
-#     if minscore_ineq is not None:
-#         innov.min_ineq_rule_significance = float(minscore_ineq)
-#     if mincorr_ineq is not None:
-#         innov.corr_min_ineq = float(mincorr_ineq)
-#
-#     # print("innov.min_ineq_rule_significance = ", innov.min_ineq_rule_significance)
-#     # print("innov.corr_min_ineq = ", innov.corr_min_ineq)
-#
-#     all_gen_val = gen_arr
-#     nearest_gen_value = int(all_gen_val[np.abs(all_gen_val - selected_gen).argmin()])
-#     gen_key = f'gen{nearest_gen_value}'
-#     current_gen_data = hf[gen_key]
-#
-#     obj = np.array(current_gen_data['F'])
-#     x = np.array(current_gen_data['X'])
-#     rank = np.array(current_gen_data['rank'])
-#     f_nd = obj[rank == 0, :]
-#     x_nd = x[rank == 0, :]
-#     n_var = x_nd.shape[1]
-#     xl, xu = hf.attrs['xl'], hf.attrs['xu']
-#
-#     solution_id = np.array([f"{nearest_gen_value}_{indx}_r{rank[indx]}" for indx in range(obj.shape[0])])
-#     solution_id_nd = solution_id[rank == 0]
-#
-#     data_arr = []
-#     # print(selected_data)
-#     id_indx_arr = []
-#     if selected_data is not None:
-#         for data in selected_data['points']:
-#             # print(data)
-#             data_id = data['customdata']
-#             if data_id[-2:] != 'r0':
-#                 continue
-#             id_indx = np.where(solution_id_nd == data_id)[0][0]
-#             data_arr.append(x_nd[id_indx, :].tolist())
-#             id_indx_arr.append(id_indx)
-#
-#         data_arr = np.array(data_arr)
-#     else:
-#         data_arr = x_nd
-#
-#     # Inequality rules
-#     var_groups, var_group_score, rel_type, corr = innov.learn_inequality_rules(data_arr)
-#     var_grp_score_significant = var_group_score[var_group_score >= innov.min_ineq_rule_significance]
-#     # print(var_grp_score_significant)
-#     var_grp_significant = var_groups[var_group_score >= innov.min_ineq_rule_significance, :]
-#     rel_type_significant = rel_type[var_group_score >= innov.min_ineq_rule_significance]
-#
-#     # print(f"Min score = {innov.min_ineq_rule_significance}")
-#     # print(var_grp_score_significant)
-#
-#     ineq_data = []
-#     for i in range(len(var_grp_significant)):
-#         indx_min = np.min(var_grp_significant[i, :])
-#         indx_max = np.max(var_grp_significant[i, :])
-#         if indx_min == indx_max:
-#             continue
-#         if xl[indx_min] != xl[indx_max] and xu[indx_min] != xu[indx_max]:
-#             continue
-#         if np.abs(corr[indx_max, indx_min]) < innov.corr_min_ineq:
-#             continue
-#         # print(var_grp_score_significant[i])
-#         istr = f"x{var_grp_significant[i, 0]} <= x{var_grp_significant[i, 1]} ".translate(sub) + \
-#                f"(score={np.round(var_grp_score_significant[i], decimals=2)}, " \
-#                f"corr={np.round(corr[var_grp_significant[i, 0], var_grp_significant[i, 1]], decimals=2)}, " \
-#                f"rtype={rel_type_significant[i]})"
-#         ineq_data.append({'label': istr, 'value': var_grp_significant[i]})
-#     for i in range(len(ineq_data)):
-#         ineq_data[i]['value'] = f"{ineq_data[i]['value'][0]} {ineq_data[i]['value'][1]}"  # str(ineq_data[i]['value'])
-#     return ineq_data, []
-
-
-def get_innovization(current_gen, data_arr, const_tol, rerun=False):
+def get_innovization(current_gen, data_arr, const_tol=1e-3, rerun=False):
     # Learn power laws and constant vars from selected data.
-    # innov_file = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}.pkl')
-    # For the generations where power laws that were not learned, the learning is performed here and the results are
-    # stored in a pickled file. They have a '_post' suffix after the filename to differentiate it.
-    # innov_file_post = os.path.join(args.result_path, INNOVIZATION_DIR, f'innov_gen{current_gen}_post.pkl')
-    # if os.path.exists(innov_file) and not rerun:
-    #     with open(innov_file, 'rb') as fp:
-    #         innov = pickle.load(fp)
-    # elif os.path.exists(innov_file_post) and not rerun:
-    #     with open(innov_file_post, 'rb') as fp:
-    #         innov = pickle.load(fp)
-    if True:
-        # var_groups = [np.arange(data_arr.shape[1]).tolist()]
-        var_groups = [np.arange(data_arr.shape[1]).tolist()]
-        # with h5py.File(hdf_file, 'r', libver='latest', swmr=True) as hf:
-            # Original begin
-            # current_gen_data = hf[f'gen{current_gen}']
-            # for key in current_gen_data.keys():
-            #     if 'var_groups' in key:
-            #         var_groups.append(np.array(current_gen_data[key]))
-            # Original end
-            # var_groups = []
-        innov = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
-                                xl=np.array(xl), xu=np.array(xu), power_law_normalized=True, agent_names=['power_law_rep_sig_0'])
-        innov.learn(data_arr)
-        # These innovization rules are learned just now. So write them to the results folder with a '_post' suffix
-        # with open(innov_file_post, 'wb') as fp:
-            # pickle.dump(innov, fp)
+    var_groups = [np.arange(data_arr.shape[1]).tolist()]
+    innov = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
+                            xl=np.array(xl), xu=np.array(xu),
+                            power_law_normalized=True, agent_names=['power_law_rep_sig_0'],
+                            max_error=power_law_max_error)
+    innov.learn(data_arr)
 
     return innov
 
@@ -322,22 +203,6 @@ def update_var_group_list(selected_gen, const_tol):
                                'value': f'{i}'})
 
     return var_group_data, ['0']
-
-
-# @app.callback(
-#     Output('cross-filter-gen-slider', 'value'),
-#     Input(component_id='playScatter', component_property='n_clicks'),
-#     State('cross-filter-gen-slider', 'value'),
-# )
-# def animate_scatter(nclicks_play_pause, current_gen):
-#     ctx = dash.callback_context
-#
-#     if ctx.triggered:
-#         id_which_triggered = ctx.triggered[0]['prop_id'].split('.')[0]
-#         print(id_which_triggered)
-#         if id_which_triggered == 'playScatter':
-#             pass
-#     return current_gen
 
 
 @app.callback(
@@ -401,54 +266,23 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
     else:
         data_arr = x_nd
 
-    # if args.special_flag is not None:
-    #     n_var = x.shape[1]
-    #     if n_var == 279 or n_var == 86:
-    #         n_shape_var = 19
-    #     elif n_var == 579 or n_var == 176:
-    #         n_shape_var = 39
-    #     elif n_var == 879 or n_var == 266:
-    #         n_shape_var = 59
-    #     else:
-    #         return {'data': [], 'layout': None}
-    #     for i in range(data_arr.shape[0]):
-    #         if n_var == 279 or n_var == 579 or n_var == 879:
-    #             symmetry = ()
-    #             shape_var = data_arr[i, -n_shape_var:]
-    #             shape_var[:n_shape_var // 2 + 1] = np.sort(shape_var[:n_shape_var // 2 + 1])
-    #             # shape_var[n_shape_var // 2 + 1:] = np.flip(np.sort(shape_var[n_shape_var // 2 + 1:]))
-    #             shape_var[n_shape_var // 2 + 1:] = np.flip(
-    #                 shape_var[:n_shape_var // 2 + 1] + 0.001 + np.random.random() * 0.001)[1:]
-    #             shape_var[n_shape_var // 2] = (shape_var[n_shape_var // 2] + shape_var[n_shape_var // 2 - 1]) / 2
-    #         else:
-    #             symmetry = ('xz', 'yz')
-    #             shape_var = data_arr[i, -(n_shape_var // 2 + 1):]
-    #             shape_var = np.sort(shape_var)
-    #         data_arr[i, -n_shape_var:] = shape_var
-
     innov = get_innovization(nearest_gen_value, data_arr, const_tol, rerun=True)
     data_arr_normalized = innov.normalize_data(data_arr)
 
     const_var_list = np.where(innov.relation[0].const_var_flag == 1)[0]
     const_c = innov.relation[0].c
     constant_rule_data = []
+
     # Show rules of type x = constant.
     print("Var grp = ", innov.groups[v_grp])
     print("const_var_list = ", const_var_list)
-    # for i in const_var_list:
     for i in range(len(innov.groups[v_grp]) - 1):
         var_i = innov.groups[v_grp][i]
         if var_i in const_var_list:
-            # TODO: Convert cstr creation to a function for re-usability.
-            # std_x = np.std(data_arr, axis=0)
-            # if i in const_var_list:
             diff_i = np.abs(data_arr_normalized[:, var_i] - const_c[var_i])
             score_const = len(np.where(diff_i <= innov.relation[0].const_tol)[0]) / data_arr.shape[0]
             const_c_original = innov.xl[var_i] + (const_c[var_i] - innov.normalize_to_range[0]) / (
                         innov.normalize_to_range[1] - innov.normalize_to_range[0]) * (innov.xu[var_i] - innov.xl[var_i])
-            # cstr = f"x\u0302{i} = ".translate(sub) \
-            #        + f"{np.round(const_c[i], decimals=2)} " \
-            #          f"(score = {np.round(score_const, decimals=2)})"
             cstr = f"x{var_i} = ".translate(sub) \
                    + f"{np.round(const_c_original, decimals=2)} " \
                      f"(score = {np.round(score_const, decimals=2)})"
@@ -473,10 +307,10 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
      State('datatable-row-ids', "derived_virtual_selected_rows")
      ]
 )
-def update_power_law_rule_checklist(selected_gen,
-                                    selected_data,
-                                    var_grp_selected,
-                                    power_law_rows_all, derived_virtual_selected_rows):
+def update_power_law_rule_table(selected_gen,
+                                selected_data,
+                                var_grp_selected,
+                                power_law_rows_all, derived_virtual_selected_rows):
     ctx = dash.callback_context
 
     if ctx.triggered:
@@ -493,9 +327,7 @@ def update_power_law_rule_checklist(selected_gen,
         v_grp = int(var_grp_selected[0])
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
 
-    # f_nd = obj[rank == 0, :]
     x_nd = x[rank == 0, :]
-    # n_var = x_nd.shape[1]
 
     solution_id = np.array([f"{nearest_gen_value}_{indx}_r{rank[indx]}" for indx in range(obj.shape[0])])
     solution_id_nd = solution_id[rank == 0]
@@ -517,7 +349,7 @@ def update_power_law_rule_checklist(selected_gen,
     else:
         data_arr = x_nd
 
-    innov = get_innovization(nearest_gen_value, data_arr, 1e-3)
+    innov = get_innovization(nearest_gen_value, data_arr)
 
     b_arr, c_arr = innov.relation[1].b, innov.relation[1].c
     power_law_error = innov.relation[1].error
@@ -540,7 +372,7 @@ def update_power_law_rule_checklist(selected_gen,
 
                 rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
                     = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value, power_law=[power_law],
-                                          power_law_max_error=0.01, const_tol=1e-3)
+                                          power_law_max_error=power_law_max_error, const_tol=1e-3)
                 score = len(rule_compliance_id) / data_arr.shape[0]
 
                 # Power law list: [String representation, i, j, b_ij, c_ij, correlation, score, mse]

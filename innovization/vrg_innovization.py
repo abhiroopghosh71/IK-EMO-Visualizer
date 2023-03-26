@@ -114,11 +114,11 @@ class VRGInnovization:
         # Select rule if the error is above a threshold
         if 'max_error' in kwargs:
             self.rule_selection_criteria['max_error'] = kwargs['max_error']
+        else:
+            self.rule_selection_criteria['max_error'] = 0.01
         # Select top n rules based on their error
         if 'top_n' in kwargs:
             self.rule_selection_criteria['top_n'] = kwargs['top_n']
-        else:
-            self.rule_selection_criteria['max_error'] = 0.01
 
     def normalize_data(self, data):
         x_min, x_max = self.normalize_to_range[0], self.normalize_to_range[1]
