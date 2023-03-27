@@ -1,6 +1,7 @@
 import numpy as np
-from innovization.relation import ConstantRule, InequalityRelation, PowerLaw
+
 from innovization.constants import *
+
 np.seterr(all='warn')
 
 

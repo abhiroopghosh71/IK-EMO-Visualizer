@@ -44,8 +44,10 @@ class VRGInnovization:
             # First learn constant rules, then learn power laws for the rest. This is necessary since for
             # xi = constant, power law xi * xj^b = c will have b = 0. This will cause problems during
             # the linear regression used for learning the power laws
-            self.relation = [ConstantRule(n_var, kwargs['const_tol'], normalization_flag=self.power_law_normalized),
-                             PowerLaw(n_var, error_metric='mse', normalization_flag=self.power_law_normalized)]
+            self.relation = [ConstantRule(n_var, kwargs['const_tol'],
+                                          normalization_flag=self.power_law_normalized),
+                             PowerLaw(n_var, evaluation_metric_name='r2',
+                                      normalization_flag=self.power_law_normalized)]
 
             # Add the repair agents. For power laws we use the ConstantRepairAgent and PowerLawRepairAgent.
             # PowerLawRepairAgent has sigma as a parameter.
@@ -111,14 +113,14 @@ class VRGInnovization:
         # Select pairwise rules (xi, xj) only if their correlation is above a particular threshold
         if 'min_correlation' in kwargs:
             self.rule_selection_criteria['min_correlation'] = kwargs['min_correlation']
-        # Select rule if the error is above a threshold
+        # Select rule if the evaluation_metric is above a threshold
         if 'max_error' in kwargs:
             self.rule_selection_criteria['max_error'] = kwargs['max_error']
-        # Select top n rules based on their error
-        if 'top_n' in kwargs:
-            self.rule_selection_criteria['top_n'] = kwargs['top_n']
         else:
             self.rule_selection_criteria['max_error'] = 0.01
+        # Select top n rules based on their evaluation_metric
+        if 'top_n' in kwargs:
+            self.rule_selection_criteria['top_n'] = kwargs['top_n']
 
     def normalize_data(self, data):
         x_min, x_max = self.normalize_to_range[0], self.normalize_to_range[1]
@@ -135,7 +137,7 @@ class VRGInnovization:
     def select_rule(self, vrg, edge_to_add):
         """
         A function to decide whether to include a particular edge (i, j) in the VRG. Selection criteria can include
-        minimum correlation, maximum error, etc.
+        minimum correlation, maximum evaluation_metric, etc.
 
         :param vrg:
         :type vrg:
@@ -152,13 +154,13 @@ class VRGInnovization:
             if 'min_correlation' in self.rule_selection_criteria \
                     and np.abs(self.correlation[i, j]) < np.abs(self.min_correlation):
                 edge_flag = False
-            # If error of the fit between the two variables (i, j) under consideration is higher than the maximum
-            # allowable error, do not add the edge
+            # If evaluation_metric of the fit between the two variables (i, j) under consideration is higher than the maximum
+            # allowable evaluation_metric, do not add the edge
             if 'max_error' in self.rule_selection_criteria:
                 if self.rel_type == POWER_LAW_STR:
-                    error_mat = self.relation[1].error
+                    error_mat = self.relation[1].evaluation_metric
                 else:
-                    error_mat = self.relation[0].error
+                    error_mat = self.relation[0].evaluation_metric
                 # TODO: Add simple_rel_type function argument. It denotes abstracted relations like
                 #       proportional, inversely proportional, etc.
                 if error_mat[i, j] > self.rule_selection_criteria['max_error']:
@@ -167,19 +169,19 @@ class VRGInnovization:
             if 'top_n' in self.rule_selection_criteria:
                 n_rules_to_select = self.rule_selection_criteria['top_n']
                 if self.rel_type == POWER_LAW_STR:
-                    error_mat = self.relation[1].error
+                    error_mat = self.relation[1].evaluation_metric
                 else:
-                    error_mat = self.relation[0].error
-                # Flatten the error array and sort in ascending order
+                    error_mat = self.relation[0].evaluation_metric
+                # Flatten the evaluation_metric array and sort in ascending order
                 error_mat_1d = error_mat.flatten()
                 error_mat_sorted_indx = np.argsort(error_mat_1d)
-                # Map the 1D sorted indices to their corresponding 2D indices in the original error matrix.
+                # Map the 1D sorted indices to their corresponding 2D indices in the original evaluation_metric matrix.
                 # Here row indx = floor(error_mat_sorted_indx / no. of columns)
                 # col indx = error_mat_sorted_indx % no. of columns
-                # For a 4x4 error matrix a 1D flatteneed index of 7 gets converted to [1, 3]
+                # For a 4x4 evaluation_metric matrix a 1D flatteneed index of 7 gets converted to [1, 3]
                 error_mat_sorted_indx_2d = np.array([error_mat_sorted_indx // error_mat.shape[1],
                                                      error_mat_sorted_indx % error_mat.shape[1]]).transpose()
-                # Select the top n rules with minimum error
+                # Select the top n rules with minimum evaluation_metric
                 top_n_error_indx = error_mat_sorted_indx_2d[:n_rules_to_select, :]
                 # If variable pair [i, j] not in the top n rules, do not create the edge
                 if not [i, j] in top_n_error_indx.tolist():
@@ -212,7 +214,7 @@ class VRGInnovization:
                     c_training_mean = np.mean(c_training)
                     c_training_std = np.std(c_training)
 
-                    # For every offspring, calculate the error of the associated global rules based on the local
+                    # For every offspring, calculate the evaluation_metric of the associated global rules based on the local
                     # neighborhood
                     for offspring_nn_ind in neigh_ind:
                         n_neighbors = len(neigh_ind)
@@ -315,10 +317,10 @@ class VRGInnovization:
             exploration_history.append([])
             node_list = self.vrg[grp_indx].get_nodes()
             edge_list = self.vrg[grp_indx].get_edges()
-            # Length of node_list is 0 when there are no rules whose error is below threshold. Thus, the
+            # Length of node_list is 0 when there are no rules whose evaluation_metric is below threshold. Thus, the
             # VRG has 0 nodes and 0 edges
             if len(node_list) == 0:
-                print(f"Group {grp_indx} does not have any low-error rules. Thus, number of VRG nodes is 0.")
+                print(f"Group {grp_indx} does not have any low-evaluation_metric rules. Thus, number of VRG nodes is 0.")
                 continue
             # This is just a check to see if an unexpected situation occurs where the graph has 1 or more nodes
             # but no edges

@@ -5,6 +5,7 @@ import h5py
 import json
 import warnings
 import numpy as np
+import ast
 
 
 # This is a very specific way of implementing a query-based system. Ideally, we should have some OOP-based function
@@ -99,6 +100,75 @@ class DemoQuery:
                     if hf.attrs['current_gen'] != gen_arr[-1]:
                         print("Mismatch in gen numbering")
                     return gen_arr
+
+
+class JSONQuery:
+    def __init__(self, x_file, f_file, param_file):
+        self.x_file = x_file
+        self.f_file = f_file
+        self.param_file = param_file
+        with open(self.param_file, 'r') as fp:
+            self.params = json.load(fp)
+
+    def get(self, *args):
+        query_data = {}
+        for query in args:
+            if query == 'X':
+                x = np.loadtxt(self.x_file, delimiter=',')
+                query_data[query] = x
+            elif query == 'F':
+                f = np.loadtxt(self.f_file, delimiter=',')
+                query_data[query] = f
+            elif query in self.params:
+                query_data[query] = self.params[query]
+            elif query == 'GEN_ARR':
+                gen_arr = [1]
+                query_data[query] = gen_arr
+            elif query == 'INNOV_LATEST_GEN':
+                query_data[query] = None
+            else:
+                warnings.warn(f"Invalid query: {query}")
+                query_data[query] = None
+
+        if len(args) == 1:
+            return query_data[args[0]]
+        return query_data
+
+
+class CSVQuery:
+    def __init__(self, x_file, f_file, param_file):
+        self.x_file = x_file
+        self.f_file = f_file
+        self.param_file = param_file
+        self.params = {}
+        with open(self.param_file, 'r') as fp:
+            for line in fp.readlines():
+                fields = line.split(',', 1)
+                self.params[fields[0]] = ast.literal_eval(fields[1:][0][:-1])
+
+    def get(self, *args):
+        query_data = {}
+        for query in args:
+            if query == 'X':
+                x = np.loadtxt(self.x_file, delimiter=',')
+                query_data[query] = x
+            elif query == 'F':
+                f = np.loadtxt(self.f_file, delimiter=',')
+                query_data[query] = f
+            elif query in self.params:
+                query_data[query] = self.params[query]
+            elif query == 'GEN_ARR':
+                gen_arr = [1]
+                query_data[query] = gen_arr
+            elif query == 'INNOV_LATEST_GEN':
+                query_data[query] = None
+            else:
+                warnings.warn(f"Invalid query: {query}")
+                query_data[query] = None
+
+        if len(args) == 1:
+            return query_data[args[0]]
+        return query_data
 
 
 if __name__ == '__main__':

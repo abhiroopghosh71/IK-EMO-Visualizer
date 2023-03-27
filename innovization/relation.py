@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+
 from innovization.constants import *
 
 
@@ -36,8 +37,6 @@ class InequalityRelation:
 
         for i in range(n_var - 1):
             if i in self.ignore_vars:
-                # self.rule[i, :] = -1
-                # self.rule[:, i] = -1
                 continue
 
             for j in range(i + 1, n_var):
@@ -130,8 +129,9 @@ class ConstantRule:
         self.const_tol = const_tol
         # self.ignore_vars = []
 
-        # Training error
-        self.error = 1e100 * np.ones(n_var)
+        # Training evaluation_metric
+        self.evaluation_metric_name = 'mse'
+        self.evaluation_metric = 1e100 * np.ones(n_var)
         self.max_error = np.ones(n_var)
 
         # Indicates whether learning and repair takes place on normalized data
@@ -184,60 +184,31 @@ class ConstantRule:
 class PowerLaw:
     """Represents the power laws learned from a training dataset."""
     # xi * xj^b = c
-    SUPPORTED_ERROR_METRICS = ['mse']
+    SUPPORTED_EVALUATION_METRICS = ['mse', 'r2']
 
-    def __init__(self, n_var, error_metric='mse', normalization_flag=False):
+    def __init__(self, n_var, evaluation_metric_name='mse', normalization_flag=False):
         self.n_var = n_var
         self.b = np.zeros([n_var, n_var])
         self.c = np.zeros([n_var, n_var])
         self.sigma_c = np.zeros([n_var, n_var])
         # self.ignore_vars = []
 
-        # Training error
-        self.error = np.zeros([n_var, n_var])
+        # Training evaluation_metric
+        self.evaluation_metric = np.zeros([n_var, n_var])
         self.max_error = np.ones([n_var, n_var])
 
         # Indicates whether learning and repair are performed on normalized data
         self.normalization_flag = normalization_flag
 
-        # Sets the error metric to use for determining the goodness of fit
-        if error_metric in PowerLaw.SUPPORTED_ERROR_METRICS:
-            self.error_metric = error_metric
+        # Sets the evaluation_metric metric to use for determining the goodness of fit
+        if evaluation_metric_name in PowerLaw.SUPPORTED_EVALUATION_METRICS:
+            self.evaluation_metric_name = evaluation_metric_name
         else:
-            warnings.warn("Unsupported error metric entered.")
-            self.error_metric = error_metric
+            warnings.warn("Unsupported evaluation_metric metric entered.")
+            self.evaluation_metric_name = evaluation_metric_name
 
     def update_max_error(self):
-        self.max_error = np.maximum(self.max_error, self.error)
-
-    # def perform_linear_regression(self, training_data, log_x, pred_var, independent_var):
-    #     """
-    #     Perform linear regression where log(xi) is the predicted var and log(xj) is the independent var in order
-    #     to learn the relation xi*xj^b = c.
-    #     """
-    #     xj_log_data = log_x[:, independent_var].reshape(-1, 1)  # Independent variable
-    #     xi_log_data = log_x[:, pred_var]  # Predicted variable
-    #     reg = LinearRegression().fit(X=xj_log_data, y=xi_log_data)
-    #     b = -reg.coef_
-    #     try:
-    #         c = np.exp(reg.intercept_)
-    #     except FloatingPointError:
-    #         warnings.warn(f"Floating point error: {pred_var}, {independent_var}")
-    #
-    #     if self.error_metric == 'mse':
-    #         # Predict log(xi) from log(xj) and calculate MSE in logspace
-    #         xi_log_predicted = reg.predict(xj_log_data)
-    #         mse_logspace = mean_squared_error(xi_log_data, xi_log_predicted)
-    #
-    #         # Convert predicted log(xi) to xi and re-calculate the MSE
-    #         xi_predicted = np.exp(xi_log_predicted)
-    #         mse_orig = mean_squared_error(y_true=training_data[:, pred_var], y_pred=xi_predicted)
-    #
-    #         self.error[pred_var, independent_var] = mse_orig
-    #     else:
-    #         warnings.warn("Error metric undefined.")
-    #     self.b[pred_var, independent_var] = b
-    #     self.c[pred_var, independent_var] = c
+        self.max_error = np.maximum(self.max_error, self.evaluation_metric)
 
     def learn(self, training_data, ignore_vars=()):
         """
@@ -248,29 +219,15 @@ class PowerLaw:
         :param ignore_vars: Variables to ignore when learning power laws.
         :type ignore_vars: list
         """
-        # self.ignore_vars = ignore_vars
         n_var = self.n_var
         log_x = np.log(training_data)
         for i in range(n_var - 1):
             if i in ignore_vars:
-                # Set a very high error for vars in ignore list. This is to avoid having to use np.Inf
-                # self.error[i, :] = 1e100
-                # self.error[:, i] = 1e100
-                # self.b[i, :], self.c[i, :] = 0, 0
-                # self.b[:, i], self.c[:, i] = 0, 0
                 continue
 
             for j in range(i + 1, n_var):
                 if j in ignore_vars:
-                    # self.error[j, :] = 1e100
-                    # self.error[:, j] = 1e100
-                    # self.b[j, :], self.c[j, :] = 0, 0
-                    # self.b[:, j], self.c[:, j] = 0, 0
                     continue
-                # # i as predicted var, j as independent var
-                # self.perform_linear_regression(training_data=training_data, log_x=log_x, pred_var=i, independent_var=j)
-                # # j as predicted var, i as independent var
-                # self.perform_linear_regression(training_data=training_data, log_x=log_x, pred_var=j, independent_var=i)
 
                 xj_log_data = log_x[:, j].reshape(-1, 1)
                 y = log_x[:, i]
@@ -279,20 +236,23 @@ class PowerLaw:
                 try:
                     c = np.exp(reg.intercept_)
                 except FloatingPointError:
-                    warnings.warn(f"Floating point error: {i}, {j}")
+                    warnings.warn(f"Floating point evaluation_metric: {i}, {j}")
                     continue
 
-                if self.error_metric == 'mse':
-                    # Predict log(xi) from log(xj)
-                    xi_log_predicted = reg.predict(xj_log_data)
-                    mse_logspace = mean_squared_error(y, xi_log_predicted)
+                # Predict log(xi) from log(xj)
+                xi_log_predicted = reg.predict(xj_log_data)
 
-                    # Convert predicted log(xi) to xi
-                    xi_predicted = np.exp(xi_log_predicted)
+                # Convert predicted log(xi) to xi
+                xi_predicted = np.exp(xi_log_predicted)
+                if self.evaluation_metric_name.lower() == 'mse':
+                    mse_logspace = mean_squared_error(y, xi_log_predicted)
                     mse_orig = mean_squared_error(training_data[:, i], xi_predicted)
 
-                    self.error[i, j] = mse_orig
-                    self.error[j, i] = self.error[i, j]
+                    self.evaluation_metric[i, j] = mse_orig
+                    self.evaluation_metric[j, i] = self.evaluation_metric[i, j]
+                elif self.evaluation_metric_name.lower() == 'r2':
+                    self.evaluation_metric[i, j] = reg.score(xj_log_data, y)
+                    self.evaluation_metric[j, i] = self.evaluation_metric[i, j]
                 else:
                     warnings.warn("Error metric undefined.")
                 self.b[i, j] = b[0]
@@ -311,10 +271,10 @@ class PowerLaw:
                         c_arr[k] = x_train[j] * x_train[i]**self.b[j, i]
                     self.sigma_c[j, i] = np.std(c_arr)
                 except FloatingPointError:
-                    warnings.warn(f"Floating point error encountered for i = {i}, j = {j}, b[i, j] = {self.b[i, j]}, "
+                    warnings.warn(f"Floating point evaluation_metric encountered for i = {i}, j = {j}, b[i, j] = {self.b[i, j]}, "
                                   f"c[i, j] = {self.c[i, j]}.")
-                    self.error[i, j] = 1e100
-                    self.error[j, i] = self.error[i, j]
+                    self.evaluation_metric[i, j] = 1e100
+                    self.evaluation_metric[j, i] = self.evaluation_metric[i, j]
 
     def repair(self, x, var_pair):
         """Performs repair on a solution using the power laws associated with the specified variable pairs."""

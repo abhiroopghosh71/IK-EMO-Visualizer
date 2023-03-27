@@ -3,33 +3,93 @@ body
     margin: 0;
     background-color: #EBEDEF;
 }
+
 #header {
     position: fixed;
-    top: 0px;
+    top: 0;
     height: 20px;
     width: 100%;
     background: green;
 }
-/*div*/
-/*{*/
-/*    background-color: white;*/
-/*    !*border: 1px solid #969696;*!*/
-/*    !*border-radius: 2px;*!*/
-/*}*/
+
+.row {
+  display: flex; /* equal height of the children */
+}
+
+.col {
+  flex: 1; /* additionally, equal width */
+  /*padding: 1em;*/
+  border: solid;
+    overflow: auto;
+  -webkit-flex-direction: row;
+  -moz-flex-direction: row;
+  -ms-flex-direction: row;
+  -o-flex-direction: row;
+    flex-direction: row;
+    padding: 10px 10px 0 10px;
+}
+.col-left {
+  flex-basis: 25%;
+    overflow: auto;
+  -webkit-flex-direction: row;
+  -moz-flex-direction: row;
+  -ms-flex-direction: row;
+  -o-flex-direction: row;
+    flex-direction: row;
+}
+.content {
+    flex: 1;
+    display: flex;
+    overflow: auto;
+}
+.box {
+    display: flex;
+    min-width: min-content; /* needs vendor prefixes */
+    /*flex-basis: 20px;*/
+}
+div.body {
+      	position: relative;  /* <------------------------- required */
+    	background: silver;
+      	flex: 1;
+    }
+
+    div.scrolled-body {
+      	position: absolute;  /* <------------------------- required */
+      	left: 0; top: 0; right: 0; bottom: 0;  /* <------- required */
+      	overflow-x: auto;  /* <--------------------------- required */
+    }
+
 H2.widgetTitle
 {
     color: #3C4B64;
     font-weight: lighter;
 }
+
+.ruleSetting
+{
+    width: 150px;
+}
+
+.ruleList
+{
+    border: 1px solid #969696;
+    border-radius: 5px;
+    background-color: white;
+    padding: 20px 20px 20px 20px;
+    overflow: scroll;
+}
+
 *:before, *:after {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
 }
+
 .video__icon {
   position: absolute;
   width: 30px;
   }
+
 /*   .video__icon .circle--outer {
     border: 1px solid #e50040;
     width: 30px;
@@ -40,6 +100,7 @@ H2.widgetTitle
     opacity: .8;
     -webkit-animation: circle 2s ease-in-out infinite;
             animation: circle 2s ease-in-out infinite; } */
+
   .video__icon .circle--inner {
     background: #e50040;
     left: 15px;
@@ -49,6 +110,7 @@ H2.widgetTitle
     border-radius: 50%;
     position: absolute;
     opacity: .8; }
+
     .video__icon .circle--inner:after {
       content: '';
       display: block;
@@ -62,6 +124,7 @@ H2.widgetTitle
       opacity: .8;
       -webkit-animation: circle 2s ease-in-out .2s infinite;
               animation: circle 2s ease-in-out .2s infinite; }
+
   .video__icon p {
     color: #000;
     text-align: center; }
