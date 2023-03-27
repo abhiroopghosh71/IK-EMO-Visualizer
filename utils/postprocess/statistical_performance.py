@@ -1,17 +1,15 @@
 import copy
-
-import h5py
-import os
 import datetime
-import numpy as np
+import os
 import pickle
 
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+from pymoo.indicators.hv import HV
 # from pymoo.factory import get_performance_indicator
 from pymoo.indicators.igd import IGD
 from pymoo.indicators.igd_plus import IGDPlus
-from pymoo.indicators.hv import HV
-import matplotlib.pyplot as plt
-from scipy.stats import ranksums
 
 plt.rcParams["figure.autolayout"] = True
 

@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+
 from innovization.constants import *
 
 
@@ -36,8 +37,6 @@ class InequalityRelation:
 
         for i in range(n_var - 1):
             if i in self.ignore_vars:
-                # self.rule[i, :] = -1
-                # self.rule[:, i] = -1
                 continue
 
             for j in range(i + 1, n_var):

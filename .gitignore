@@ -47,32 +47,18 @@ cython_debug/
 # ---> C++
 # Compiled Object files
 *.slo
-*.lo
-*.o
-*.obj
 
 # Precompiled Headers
-*.gch
-*.pch
 
 # Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
 
 # Fortran module files
 *.mod
 
 # Compiled Static libraries
 *.lai
-*.la
-*.a
-*.lib
 
 # Executables
-*.exe
-*.out
-*.app
 
 # ---> Java
 *.class
@@ -114,7 +100,6 @@ __pycache__/
 *.pkl
 
 # C extensions
-*.so
 
 # Distribution / packaging
 .Python

@@ -1,7 +1,3 @@
-import numpy as np
-from innovization.constants import *
-
-
 class DecisionMaker:
     """Represents a human or artificial decision maker."""
     def __init__(self, dm_type):

@@ -1,29 +1,22 @@
 import copy
 import os
-import pickle
 import sys
-from signal import signal, SIGINT
 import tempfile
+from signal import signal, SIGINT
 
 import dash
+import networkx as nx
+import numpy as np
+import pandas as pd
+import plotly.graph_objs as go
 from dash import dcc, html, ctx
 from dash.dependencies import Input, Output, State
-# from dash.exceptions import PreventUpdate
-import numpy as np
-import plotly.graph_objs as go
-import h5py
-import networkx as nx
-import pandas as pd
 
-from gui.layout import get_gen_slider_steps, blank_fig, get_hv_fig, update_hv_progress, \
+from gui.layout import get_gen_slider_steps, get_hv_fig, update_hv_progress, \
     get_current_gen_data, construct_layout, POWER_LAW_TABLE_COLUMNS
 from innovization.vrg_innovization import VRGInnovization
-from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
-    POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
-# from utils.general import get_repair_agent
 from query import DemoQuery, QUERY, JSONQuery
-
-from utils.file_io import open_file_selection_dialog
+from utils.record_data import USER_INTERACT_DIR, POWER_LAW_RANK_FILE_PREFIX
 from utils.user_input import get_argparser
 
 sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")

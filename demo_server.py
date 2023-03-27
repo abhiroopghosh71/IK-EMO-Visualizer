@@ -2,34 +2,31 @@ import argparse
 import copy
 import os
 import pickle
-import sys
-# import warnings
-from signal import signal, SIGINT
-import tempfile
 import shutil
-from argparse import Namespace
+import sys
+import tempfile
+from signal import signal, SIGINT
 
 import dash
+import h5py
+import networkx as nx
+# from dash.exceptions import PreventUpdate
+import numpy as np
+import plotly.graph_objs as go
 # import numpy
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State
-# from dash.exceptions import PreventUpdate
-import numpy as np
-import plotly.graph_objs as go
-import h5py
-import networkx as nx
 
 from innovization.vrg_innovization import VRGInnovization
-from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
-    POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX, INEQUALITY_RULE_RANK_FILE_PREFIX
-# from utils.general import get_repair_agent
-from utils.postprocess.statistical_performance import find_pf, calc_hv, calc_igd, calc_igd_plus
-
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # from file_io import open_file_selection_dialog
 from utils.file_io import open_file_selection_dialog
+# from utils.general import get_repair_agent
+from utils.postprocess.statistical_performance import calc_hv
+from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
+    POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
 
 
 def get_current_gen_data(selected_gen):

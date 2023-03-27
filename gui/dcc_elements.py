@@ -1,4 +1,4 @@
-from dash import html, dcc, dash_table
+from dash import html, dash_table
 
 
 def get_rule_table_checklists():

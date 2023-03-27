@@ -4,7 +4,7 @@ import numpy as np
 
 from innovization.constants import *
 from innovization.interactive.decision_making import DecisionMaker
-from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, POWER_LAW_RANK_FILE_PREFIX, \
+from utils.record_data import USER_INTERACT_DIR, POWER_LAW_RANK_FILE_PREFIX, \
     INEQUALITY_RULE_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
 
 

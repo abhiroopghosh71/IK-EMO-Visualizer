@@ -36,7 +36,7 @@ def record_state(algorithm):
     rank_pop = algorithm.pop.get('rank')
     x_pop = algorithm.pop.get('X')
     f_pop = algorithm.pop.get('F')
-    rank_pop[rank_pop == None] = -1
+    rank_pop[rank_pop is None] = -1
     rep_time_pop = algorithm.pop.get('rep_time')
     rep_indx_pop = algorithm.pop.get('rep_indx')
     rep_operator_survivors = algorithm.pop.get('rep_operator_selected')

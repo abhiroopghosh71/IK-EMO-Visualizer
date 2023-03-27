@@ -1,15 +1,11 @@
-import os
-
 import numpy as np
-from dash import html, dcc, dash_table
-from plotly import graph_objs as go
 import pandas as pd
+from dash import html, dcc
+from plotly import graph_objs as go
 
-# from main import gen_arr, query
-from query import QUERY
-
-from utils.postprocess.statistical_performance import calc_hv
 from gui.dcc_elements import get_dash_rule_table, get_rule_table_checklists
+from utils.postprocess.statistical_performance import calc_hv
+
 
 PLAY_ICON = '\u23F5'
 STOP_ICON = "\u23F9"

@@ -1,12 +1,10 @@
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.markers import MarkerStyle
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d import proj3d
-from matplotlib.patches import FancyArrowPatch
-import matplotlib.lines as mlines
 from matplotlib.legend_handler import HandlerPatch
-import matplotlib.patches as mpatches
+from matplotlib.markers import MarkerStyle
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
 
 
 class Arrow3D(FancyArrowPatch):
