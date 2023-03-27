@@ -6,7 +6,7 @@ from signal import signal, SIGINT
 import tempfile
 
 import dash
-from dash import dcc, dash_table, html
+from dash import dcc, html, ctx
 from dash.dependencies import Input, Output, State
 # from dash.exceptions import PreventUpdate
 import numpy as np
@@ -301,6 +301,46 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
 
 
 @app.callback(
+    [
+        Output('datatable-row-ids', 'selected_rows'),
+        Output('power-law-select-all', 'value')
+    ],
+    [
+        Input('power-law-select-all', 'value'),
+        Input('datatable-row-ids', 'selected_rows')
+    ],
+    [
+        State('datatable-row-ids', 'derived_virtual_data'),
+    ]
+)
+def select_all_power_law_rules(checked_settings, selected_rows, power_law_rows_all):
+    if ctx.triggered_id == 'power-law-select-all':
+        if 'select_all' in checked_settings:
+            return list(range(len(power_law_rows_all))), checked_settings
+        else:
+            return [], checked_settings
+    elif ctx.triggered_id == 'datatable-row-ids' and len(selected_rows) != len(power_law_rows_all):
+        return selected_rows, []
+    else:
+        return selected_rows, checked_settings
+
+
+# @app.callback(
+#     Output('power-law-select-all', 'value'),
+#     Input('datatable-row-ids', 'selected_rows'),
+#     [
+#         State('datatable-row-ids', 'derived_virtual_data'),
+#         State('power-law-select-all', 'value')
+#      ]
+# )
+def unselect_select_all(selected_rows, power_law_rows_all, select_all_checkbox):
+    """This function will uncheck the select all checkbox if it was checked and one of the rule table rows
+    was manually de-selected."""
+    if 'select_all' in select_all_checkbox and len(selected_rows) == len(power_law_rows_all):
+        return []
+
+
+@app.callback(
     Output('datatable-row-ids', 'data'),
     [Input('cross-filter-gen-slider', 'value'),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
@@ -308,8 +348,8 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
      Input('power-law-table-settings', 'value')],
     [
      # Power law table data
-     State('datatable-row-ids', "derived_virtual_data"),
-     State('datatable-row-ids', "derived_virtual_selected_rows")
+     State('datatable-row-ids', 'derived_virtual_data'),
+     State('datatable-row-ids', 'derived_virtual_selected_rows')
      ]
 )
 def update_power_law_rule_table(selected_gen,

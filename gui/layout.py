@@ -23,7 +23,6 @@ tabs_styles = {
 tab_style = {
     'borderBottom': '1px solid #d6d6d6',
     'padding': '6px',
-    'fontWeight': 'bold'
 }
 
 tab_selected_style = {
@@ -33,6 +32,11 @@ tab_selected_style = {
     'color': 'white',
     'padding': '6px',
 }
+tab_disabled_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'padding': '6px',
+}
+
 POWER_LAW_TABLE_COLUMNS = ["Power law", "i", "j", "b", "c", "Corr.", "Compliance", "Metric"]
 
 
@@ -143,10 +147,14 @@ def construct_layout(args, gen_arr, query):
                                     html.H6(children='Generation', id='generation-no', style={'display': 'inline-block'}),
                                     html.Div([
                                         html.Button(children=PLAY_ICON, id="playScatter", title='Play',
-                                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
+                                                    disabled=False,
+                                                    style={'margin': '0 0px 0 0', 'font-size': '20px',
+                                                           'border': 'none',
                                                            'padding-right': '0px'}),
                                         html.Button(children=STOP_ICON, id="stopScatter", title='Pause',
-                                                    style={'margin': '0 0px 0 0', 'font-size': '20px', 'border': 'none',
+                                                    disabled=False,
+                                                    style={'margin': '0 0px 0 0', 'font-size': '20px',
+                                                           'border': 'none',
                                                            'padding-left': '10px'})
                                     ], style={'margin': '0 0 0 20px', 'display': 'inline-block'}),
                                 ], style={'padding': '0px 20px 0px 20px'}),
@@ -157,7 +165,7 @@ def construct_layout(args, gen_arr, query):
                                         max=max(gen_arr),
                                         value=max(gen_arr),
                                         step=None,
-                                        tooltip={"placement": "bottom", "always_visible": True},
+                                        tooltip={"placement": "bottom", "always_visible": False},
                                         marks=get_gen_slider_steps(gen_arr),
                                         # marks={str(int(gen)): str(int(gen)) for gen in gen_arr}
                                     )
@@ -174,8 +182,9 @@ def construct_layout(args, gen_arr, query):
                                             ], style={'min-width': '200%', 'width': '200%'})
                                 ], style={'overflow': 'scroll'})
                             ]),
-                    dcc.Tab(label='Design', value='selected-design', style=tab_style,
-                            selected_style=tab_selected_style, disabled=False, children=[
+                    dcc.Tab(label='Selected design', value='selected-design', style=tab_style,
+                            disabled=True, disabled_style=tab_disabled_style,
+                            selected_style=tab_selected_style, children=[
                                 html.Div([
                                     dcc.Graph(id='design-fig', figure=blank_fig(),
                                               hoverData={'points': [{'customdata': ''}]}, config=config,
@@ -199,17 +208,26 @@ def construct_layout(args, gen_arr, query):
                 html.Div([
                     dcc.Tabs(id="innov-rules-tab-group", value='power-law-list', children=[
                         dcc.Tab(label='Power laws', value='power-law-list', style=tab_style,
+                                disabled=False, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
+                                    html.Div([
+                                        dcc.Checklist(
+                                            id='power-law-select-all',
+                                            options=[{'label': 'Select all', 'value': 'select_all', 'disabled': False}],
+                                            value=[],
+                                            inline=True
+                                        )], style={'display': 'inline-block'}),
                                     html.Div([
                                         dcc.Checklist(
                                             id='power-law-table-settings',
                                             options=get_rule_table_checklists(),
                                             value=['normalized_rule'],
                                             inline=True
-                                        )]),
+                                        )], style={'display': 'inline-block'}),
                                     get_dash_rule_table(rule_df=power_law_df,
                                                         table_id='datatable-row-ids')], className='ruleList'),
                         dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
+                                disabled=True, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([  # Bordered region
                                         # Rule display settings
@@ -248,6 +266,7 @@ def construct_layout(args, gen_arr, query):
                                     ], className='ruleList'),
                                 ]),
                         dcc.Tab(label='Inequality rules', value='inequality-rule-list', style=tab_style,
+                                disabled=True, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([  # Bordered region
                                         # Rule display settings
@@ -292,6 +311,7 @@ def construct_layout(args, gen_arr, query):
                 html.Div([
                     dcc.Tabs(id="innov-figures-tab-group", value='vrg', children=[
                         dcc.Tab(label='Variable Relation Graph', value='vrg', style=tab_style,
+                                disabled=False, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
                                    dcc.Dropdown([], id='var-group-selector', searchable=False,
                                                 style={'width': '50%', 'display': 'inline-block',
@@ -321,6 +341,7 @@ def construct_layout(args, gen_arr, query):
                                              config=config)], className='ruleList'),
 
                         dcc.Tab(label='Rule Plot', value='rule-plot', style=tab_style,
+                                disabled=False, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([
                                         html.Div([dcc.Graph(id='power-law-graph',
@@ -332,6 +353,7 @@ def construct_layout(args, gen_arr, query):
                                                'background-color': 'white',
                                                'margin': '0px 20px 20px 20px'})], className='ruleList'),
                         dcc.Tab(label='Rule Evolution', value='rule-evolution-plot', style=tab_style,
+                                disabled=True, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
                                     html.Div([
                                         dcc.Input(
@@ -345,7 +367,7 @@ def construct_layout(args, gen_arr, query):
                                                             config=config)])
                                     ], style={})], className='ruleList'),
                                    ]),
-                        ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top',
+                        ], style={'width': '41%', 'display': 'inline-block', 'vertical-align': 'top',
                                   'padding': '0 0 0 10px', 'overflow': 'scroll'}),
 
 
@@ -389,7 +411,10 @@ def construct_layout(args, gen_arr, query):
 
 
 def get_gen_slider_steps(gen_list):
-    gen_slider_steps = {str(int(gen)): '' for gen in gen_list}
+    if len(gen_list) > 0:
+        gen_slider_steps = {str(int(gen)): '' for gen in gen_list}
+    else:
+        gen_slider_steps = {'N/A'}
 
     return gen_slider_steps
 

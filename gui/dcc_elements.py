@@ -3,8 +3,7 @@ from dash import html, dcc, dash_table
 
 def get_rule_table_checklists():
     return [
-        {'label': 'Select all', 'value': 'select_all', 'disabled': True},
-        {'label': 'Normalized', 'value': 'normalized_rule', 'disabled': False},
+        {'label': 'Normalized to [1,2]', 'value': 'normalized_rule', 'disabled': False},
     ]
 
 
