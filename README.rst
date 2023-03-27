@@ -17,7 +17,7 @@ To get the latest source code:
 
     git clone https://github.com/abhiroopghosh71/IK-EMO-Visualizer.git
     cd IK-EMO-Visualizer
-    pip install .
+    pip install -r requirements.txt
 
 Then, generate the sample data files:
 
