@@ -48,8 +48,7 @@ IK-EMO-Viz requires three files:
 
 #. X.DAT, which consists of the decision variables for multiple solutions arranged in a matrix form.
 #. F.DAT, which consists of the objective values for the solutions defined in X.DAT.
-#. params.DAT, a JSON file with different problem parameters like number of variables, number of objectives,
-variable limits, etc. Refer to the generated params.DAT files in data/welded_beam and data/truss2d folders.
+#. params.DAT, a JSON file with different problem parameters like number of variables, number of objectives, variable limits, etc. Refer to the generated params.DAT files in data/welded_beam and data/truss2d folders.
 
 Once the necessary files are ready, run the code given below.
 
