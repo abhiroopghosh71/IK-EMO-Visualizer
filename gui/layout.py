@@ -33,12 +33,11 @@ tab_selected_style = {
     'color': 'white',
     'padding': '6px',
 }
+POWER_LAW_TABLE_COLUMNS = ["Power law", "i", "j", "b", "c", "Corr.", "Compliance", "Metric"]
 
 
 def construct_layout(args, gen_arr, query):
-    power_law_df = pd.DataFrame(data=[], columns=["Power law",
-                                                  "i", "j", "b", "c",
-                                                  "Corr.", "Score", "MSE"])
+    power_law_df = pd.DataFrame(data=[], columns=POWER_LAW_TABLE_COLUMNS)
     app_mode = args.app_mode
     # default_pause_play_icon = PAUSE_ICON
     # if os.path.exists(os.path.join(args.result_path, '.pauserun')):
@@ -172,7 +171,7 @@ def construct_layout(args, gen_arr, query):
                                                   hoverData={'points': [{'customdata': ''}]}, config=config,
                                                   # style={'width': '200px'}
                                                   )
-                                            ], style={'min-width': '100%', 'width': '100%'})
+                                            ], style={'min-width': '200%', 'width': '200%'})
                                 ], style={'overflow': 'scroll'})
                             ]),
                     dcc.Tab(label='Design', value='selected-design', style=tab_style,
@@ -203,7 +202,7 @@ def construct_layout(args, gen_arr, query):
                                 selected_style=tab_selected_style, children=[
                                     html.Div([
                                         dcc.Checklist(
-                                            id='power-law-select-all',
+                                            id='power-law-table-settings',
                                             options=get_rule_table_checklists(),
                                             value=['normalized_rule'],
                                             inline=True
@@ -289,7 +288,7 @@ def construct_layout(args, gen_arr, query):
                                     ], className='ruleList')
                                 ]),
                     ]),
-                ], style={'width': '50%', 'display': 'inline-block', 'vertical-align': 'top'}),
+                ], style={'width': '58%', 'display': 'inline-block', 'vertical-align': 'top'}),
                 html.Div([
                     dcc.Tabs(id="innov-figures-tab-group", value='vrg', children=[
                         dcc.Tab(label='Variable Relation Graph', value='vrg', style=tab_style,
@@ -326,7 +325,8 @@ def construct_layout(args, gen_arr, query):
                                     html.Div([
                                         html.Div([dcc.Graph(id='power-law-graph',
                                                             hoverData={'points': [{'customdata': ''}]},
-                                                            config=config)]),
+                                                            config=config)],
+                                                 style={'overflow': 'scroll'}),
                                     ],
                                         style={'border': '1px solid #969696', 'border-radius': '5px',
                                                'background-color': 'white',
@@ -345,8 +345,8 @@ def construct_layout(args, gen_arr, query):
                                                             config=config)])
                                     ], style={})], className='ruleList'),
                                    ]),
-                        ], style={'width': '48%', 'display': 'inline-block', 'vertical-align': 'top',
-                                  'padding': '0 0 0 10px'}),
+                        ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top',
+                                  'padding': '0 0 0 10px', 'overflow': 'scroll'}),
 
 
             ], style={'display': 'inline-block',

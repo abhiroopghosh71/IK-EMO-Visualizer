@@ -476,8 +476,8 @@ html_layout = [
                                   inputMode='numeric', value=0),
                     ]),
                     html.Div([
-                        html.H5(children='Max. rule error', id='maxerror_power_text'),
-                        dcc.Input(id="maxerror_power", type="number", placeholder="Max. power law error", debounce=True,
+                        html.H5(children='Max. rule evaluation_metric', id='maxerror_power_text'),
+                        dcc.Input(id="maxerror_power", type="number", placeholder="Max. power law evaluation_metric", debounce=True,
                                   inputMode='numeric', value=0.01),
                     ]),
                     html.Div([
@@ -1144,7 +1144,7 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
     innov = get_innovization(nearest_gen_value, data_arr, const_tol)
 
     b_arr, c_arr = innov.relation[1].b, innov.relation[1].c
-    power_law_error = innov.relation[1].error
+    power_law_error = innov.relation[1].evaluation_metric
     const_var_list = np.where(innov.relation[0].const_var_flag == 1)[0]
     power_law_data = []
     print("Var grp = ", innov.groups[v_grp])
@@ -1185,7 +1185,7 @@ def update_power_law_rule_checklist(selected_gen, maxerror_power, minscore_power
                        + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup) \
                        + f" = {np.round(c_arr[var_i, var_j], decimals=2)}" \
                        + f" (score = {np.round(score, decimals=2)}," \
-                       + " {} = {:.1e},".format(innov.relation[1].error_metric, power_law_error[var_i, var_j]) \
+                       + " {} = {:.1e},".format(innov.relation[1].evaluation_metric_name, power_law_error[var_i, var_j]) \
                        + f" corr = {np.round(innov.correlation[var_i, var_j], decimals=2)}" \
                        + f" )"
                 power_law_data.append({'label': pstr,

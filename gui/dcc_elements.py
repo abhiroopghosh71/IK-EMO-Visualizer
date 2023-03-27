@@ -4,7 +4,7 @@ from dash import html, dcc, dash_table
 def get_rule_table_checklists():
     return [
         {'label': 'Select all', 'value': 'select_all', 'disabled': True},
-        {'label': 'Normalized', 'value': 'normalized_rule', 'disabled': True},
+        {'label': 'Normalized', 'value': 'normalized_rule', 'disabled': False},
     ]
 
 
@@ -46,5 +46,5 @@ def get_dash_rule_table(rule_df, table_id):
                      'rule': 'position:absolute;bottom:-30px'},  # move below table
                 ]
             ),
-        ], style={'font-size': '1.75em',
+        ], style={'font-size': '1.5em',
                   'overflow': 'scroll'})

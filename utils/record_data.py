@@ -198,15 +198,15 @@ def record_state(algorithm):
                 g1.create_dataset('c_const', data=algorithm.problem.innov.relation[0].c)
                 g1.create_dataset('const_var_flag', data=algorithm.problem.innov.relation[0].const_var_flag)
                 g1.create_dataset('const_tol', data=algorithm.problem.innov.relation[0].const_tol)
-                g1.create_dataset('error_const', data=algorithm.problem.innov.relation[0].error)
+                g1.create_dataset('error_const', data=algorithm.problem.innov.relation[0].evaluation_metric)
                 g1.create_dataset('max_error_const', data=algorithm.problem.innov.relation[0].max_error)
 
                 # Power law
                 g1.create_dataset('b_pow', data=algorithm.problem.innov.relation[1].b)
                 g1.create_dataset('c_pow', data=algorithm.problem.innov.relation[1].c)
-                g1.create_dataset('error_pow', data=algorithm.problem.innov.relation[1].error)
+                g1.create_dataset('error_pow', data=algorithm.problem.innov.relation[1].evaluation_metric)
                 g1.create_dataset('max_error_pow', data=algorithm.problem.innov.relation[1].max_error)
-                g1.create_dataset('error_metric', data=algorithm.problem.innov.relation[1].error_metric)
+                g1.create_dataset('evaluation_metric_name', data=algorithm.problem.innov.relation[1].evaluation_metric_name)
             elif algorithm.problem.repair_inequality:
                 g1.create_dataset('rule', data=algorithm.problem.innov.relation[0].rule)
                 g1.create_dataset('eq_tol', data=algorithm.problem.innov.relation[0].eq_tol)

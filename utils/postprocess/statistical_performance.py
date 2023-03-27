@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 except OSError:
                     pass
             else:
-                print("File read error")
+                print("File read evaluation_metric")
 
     pop_size = final_pop.shape[0]
     all_pf = find_pf(np.concatenate(pf_list, axis=0))

@@ -16,7 +16,7 @@ import networkx as nx
 import pandas as pd
 
 from gui.layout import get_gen_slider_steps, blank_fig, get_hv_fig, update_hv_progress, \
-    get_current_gen_data, construct_layout
+    get_current_gen_data, construct_layout, POWER_LAW_TABLE_COLUMNS
 from innovization.vrg_innovization import VRGInnovization
 from utils.record_data import INNOVIZATION_DIR, USER_INTERACT_DIR, \
     POWER_LAW_RANK_FILE_PREFIX, CONSTANT_RULE_RANK_FILE_PREFIX
@@ -177,11 +177,16 @@ def get_innovization(current_gen, data_arr, const_tol=1e-3, rerun=False):
     var_groups = [np.arange(data_arr.shape[1]).tolist()]
     innov = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
                             xl=np.array(xl), xu=np.array(xu),
-                            power_law_normalized=True, agent_names=['power_law_rep_sig_0'],
+                            power_law_normalized=False, agent_names=['power_law_rep_sig_0'],
                             max_error=power_law_max_error)
+    innov_normalized = VRGInnovization(n_var=data_arr.shape[1], groups=var_groups, const_tol=const_tol,
+                                       xl=np.array(xl), xu=np.array(xu),
+                                       power_law_normalized=True, agent_names=['power_law_rep_sig_0'],
+                                       max_error=power_law_max_error)
     innov.learn(data_arr)
+    innov_normalized.learn(data_arr)
 
-    return innov
+    return innov, innov_normalized
 
 
 @app.callback(
@@ -193,9 +198,8 @@ def get_innovization(current_gen, data_arr, const_tol=1e-3, rerun=False):
 def update_var_group_list(selected_gen, const_tol):
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
     x_nd = x[rank == 0, :]
-    n_var = x_nd.shape[1]
-    vrg_innov = get_innovization(nearest_gen_value, x_nd, const_tol)
-    var_grp = vrg_innov.groups
+    vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
+    var_grp = vrg_innov_normalized.groups
     var_group_data = []
 
     for i in range(len(var_grp)):
@@ -266,23 +270,23 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
     else:
         data_arr = x_nd
 
-    innov = get_innovization(nearest_gen_value, data_arr, const_tol, rerun=True)
-    data_arr_normalized = innov.normalize_data(data_arr)
+    innov, innov_normalized = get_innovization(nearest_gen_value, data_arr, const_tol, rerun=True)
+    data_arr_normalized = innov_normalized.normalize_data(data_arr)
 
-    const_var_list = np.where(innov.relation[0].const_var_flag == 1)[0]
-    const_c = innov.relation[0].c
+    const_var_list = np.where(innov_normalized.relation[0].const_var_flag == 1)[0]
+    const_c = innov_normalized.relation[0].c
     constant_rule_data = []
 
     # Show rules of type x = constant.
-    print("Var grp = ", innov.groups[v_grp])
+    print("Var grp = ", innov_normalized.groups[v_grp])
     print("const_var_list = ", const_var_list)
-    for i in range(len(innov.groups[v_grp]) - 1):
-        var_i = innov.groups[v_grp][i]
+    for i in range(len(innov_normalized.groups[v_grp]) - 1):
+        var_i = innov_normalized.groups[v_grp][i]
         if var_i in const_var_list:
             diff_i = np.abs(data_arr_normalized[:, var_i] - const_c[var_i])
-            score_const = len(np.where(diff_i <= innov.relation[0].const_tol)[0]) / data_arr.shape[0]
-            const_c_original = innov.xl[var_i] + (const_c[var_i] - innov.normalize_to_range[0]) / (
-                        innov.normalize_to_range[1] - innov.normalize_to_range[0]) * (innov.xu[var_i] - innov.xl[var_i])
+            score_const = len(np.where(diff_i <= innov_normalized.relation[0].const_tol)[0]) / data_arr.shape[0]
+            const_c_original = innov_normalized.xl[var_i] + (const_c[var_i] - innov_normalized.normalize_to_range[0]) / (
+                        innov_normalized.normalize_to_range[1] - innov_normalized.normalize_to_range[0]) * (innov_normalized.xu[var_i] - innov_normalized.xl[var_i])
             cstr = f"x{var_i} = ".translate(sub) \
                    + f"{np.round(const_c_original, decimals=2)} " \
                      f"(score = {np.round(score_const, decimals=2)})"
@@ -300,7 +304,8 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
     Output('datatable-row-ids', 'data'),
     [Input('cross-filter-gen-slider', 'value'),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
-     Input('var-group-selector', 'value')],
+     Input('var-group-selector', 'value'),
+     Input('power-law-table-settings', 'value')],
     [
      # Power law table data
      State('datatable-row-ids', "derived_virtual_data"),
@@ -310,6 +315,7 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
 def update_power_law_rule_table(selected_gen,
                                 selected_data,
                                 var_grp_selected,
+                                checked_settings,
                                 power_law_rows_all, derived_virtual_selected_rows):
     ctx = dash.callback_context
 
@@ -349,49 +355,62 @@ def update_power_law_rule_table(selected_gen,
     else:
         data_arr = x_nd
 
-    innov = get_innovization(nearest_gen_value, data_arr)
+    innov, innov_normalized = get_innovization(nearest_gen_value, data_arr)
 
     b_arr, c_arr = innov.relation[1].b, innov.relation[1].c
-    power_law_error = innov.relation[1].error
-    const_var_list = np.where(innov.relation[0].const_var_flag == 1)[0]
-    print("Var grp = ", innov.groups[v_grp])
+    b_arr_normalized, c_arr_normalized = innov_normalized.relation[1].b, innov_normalized.relation[1].c
+    const_var_list = np.where(innov_normalized.relation[0].const_var_flag == 1)[0]
+    print("Var grp = ", innov_normalized.groups[v_grp])
 
     power_law_list = []
     # For every var pair in the currently selected group
-    for i in range(len(innov.groups[v_grp]) - 1):
-        var_i = innov.groups[v_grp][i]
+    for i in range(len(innov_normalized.groups[v_grp]) - 1):
+        var_i = innov_normalized.groups[v_grp][i]
         if var_i in const_var_list:
             continue
-        for j in range(i + 1, len(innov.groups[v_grp])):
-            var_j = innov.groups[v_grp][j]
+        for j in range(i + 1, len(innov_normalized.groups[v_grp])):
+            var_j = innov_normalized.groups[v_grp][j]
             if var_j in const_var_list:
                 continue
             # Show rules for normal power laws.
             if var_i not in const_var_list and var_j not in const_var_list:
-                power_law = [var_i, var_j, b_arr[var_i, var_j], c_arr[var_i, var_j]]
+                power_law = [var_i, var_j, b_arr_normalized[var_i, var_j], c_arr_normalized[var_i, var_j]]
 
                 rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
                     = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value, power_law=[power_law],
-                                          power_law_max_error=power_law_max_error, const_tol=1e-3)
-                score = len(rule_compliance_id) / data_arr.shape[0]
+                                          power_law_max_error=0.01, const_tol=1e-3)
+                rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
 
-                # Power law list: [String representation, i, j, b_ij, c_ij, correlation, score, mse]
-                power_law_list.append([
-                    f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)
-                    + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup)
-                    + f" = {np.round(c_arr[var_i, var_j], decimals=2)}",
-                    var_i, var_j,
-                    np.round(b_arr[var_i, var_j], decimals=2),
-                    np.round(c_arr[var_i, var_j], decimals=2),
-                    np.round(innov.correlation[var_i, var_j], decimals=2),
-                    score,
-                    "{:.1e}".format(power_law_error[var_i, var_j])
-                ])
+                # Power law list: [String representation, i, j, b_ij, c_ij, correlation, rule_compliance, mse]
+                if 'normalized_rule' in checked_settings:
+                    power_law_str = f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)\
+                                    + f"{np.round(b_arr_normalized[var_i, var_j], decimals=2)}".translate(sup)\
+                                    + f" = {np.round(c_arr_normalized[var_i, var_j], decimals=2)}"
+                    power_law_list.append([
+                        power_law_str,
+                        var_i, var_j,
+                        np.round(b_arr_normalized[var_i, var_j], decimals=2),
+                        np.round(c_arr_normalized[var_i, var_j], decimals=2),
+                        np.round(innov_normalized.correlation[var_i, var_j], decimals=2),
+                        "{:.3f}".format(rule_compliance),
+                        "{:.3f}".format(innov_normalized.relation[1].evaluation_metric[var_i, var_j])
+                    ])
+                else:
+                    power_law_str = f"x{var_i} * x{var_j}".translate(sub)\
+                                    + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup)\
+                                    + f" = {np.round(c_arr[var_i, var_j], decimals=2)}"
+                    power_law_list.append([
+                        power_law_str,
+                        var_i, var_j,
+                        np.round(b_arr[var_i, var_j], decimals=2),
+                        np.round(c_arr[var_i, var_j], decimals=2),
+                        np.round(innov.correlation[var_i, var_j], decimals=2),
+                        "{:.3f}".format(rule_compliance),
+                        "{:.3f}".format(innov.relation[1].evaluation_metric[var_i, var_j])
+                    ])
 
     # Data frame to be used in the power law table on the display
-    power_law_df = pd.DataFrame(data=power_law_list, columns=["Power law",
-                                                              "i", "j", "b", "c",
-                                                              "Corr.", "Score", "MSE"])
+    power_law_df = pd.DataFrame(data=power_law_list, columns=POWER_LAW_TABLE_COLUMNS)
 
     return power_law_df.to_dict('records')
 
@@ -409,8 +428,8 @@ def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error,
     # if power_law.ndim == 1:
     #     power_law = power_law.reshape([1, -1])
 
-    vrg_innov = get_innovization(curr_gen, x_nd, const_tol)
-    x_nd_normalized = vrg_innov.normalize_data(x_nd)
+    vrg_innov, vrg_innov_normalized = get_innovization(curr_gen, x_nd, const_tol)
+    x_nd_normalized = vrg_innov_normalized.normalize_data(x_nd)
 
     n_var = x_nd.shape[1]
     rule_compliance_id_power = []
@@ -421,7 +440,7 @@ def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error,
             i, j = law[:2]
             i = int(i)
             j = int(j)
-            compliance = vrg_innov.relation[1].check_compliance(x_test=x_sol,
+            compliance = vrg_innov_normalized.relation[1].check_compliance(x_test=x_sol,
                                                                 var_pair=np.array([[i, j]]),
                                                                 error_threshold=power_law_max_error,
                                                                 ignore_vars=ignore_vars)
@@ -668,11 +687,11 @@ def update_power_law_evolution_plot(plaw_var, current_gen, const_tol):
             f_nd = obj[rank == 0, :]
             x_nd = x[rank == 0, :]
             n_var = x_nd.shape[1]
-            vrg_innov = get_innovization(nearest_gen_value, x_nd, const_tol)
+            vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
 
-            b, c = vrg_innov.relation[1].b[i, j], vrg_innov.relation[1].c[i, j]
-            ll_i, ul_i = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
-            ll_j, ul_j = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
+            b, c = vrg_innov_normalized.relation[1].b[i, j], vrg_innov_normalized.relation[1].c[i, j]
+            ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
+            ll_j, ul_j = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
 
             xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
             xi = c / (xj ** b)
@@ -713,7 +732,7 @@ def update_power_law_evolution_plot(plaw_var, current_gen, const_tol):
             # 'autorange': True,
             'automargin': True,
             # 'rangemode': 'tozero',
-            'range': [vrg_innov.normalize_to_range[0] * wl, vrg_innov.normalize_to_range[1] * wu],
+            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
         },
         yaxis={
             'title': f'x\u0302{j}'.translate(sub),
@@ -728,7 +747,7 @@ def update_power_law_evolution_plot(plaw_var, current_gen, const_tol):
             # 'autorange': True,
             'automargin': True,
             # 'rangemode': 'tozero',
-            'range': [vrg_innov.normalize_to_range[0] * wl, vrg_innov.normalize_to_range[1] * wu],
+            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
         },
         margin={'l': 50, 'b': 30, 't': 10, 'r': 0},
         height=400,
@@ -812,13 +831,13 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
     else:
         data_arr = x_nd
 
-    innov = get_innovization(nearest_gen_value, data_arr, const_tol)
+    innov, innov_normalized = get_innovization(nearest_gen_value, data_arr, const_tol)
     if var_grp_selected is None:
         v_grp = 0
     else:
         v_grp = int(var_grp_selected[0])
     print(f"Selected var grp = {v_grp}")
-    nx_graph = copy.deepcopy(innov.vrg[v_grp].graph)  # Get the networkx plot
+    nx_graph = copy.deepcopy(innov_normalized.vrg[v_grp].graph)  # Get the networkx plot
     node_pos = nx.circular_layout(nx_graph)
 
     ctx = dash.callback_context
@@ -857,8 +876,8 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
     # Create graph edges
     edge_x = []
     edge_y = []
-    edge_trace_list = []  # For varying the edge thickness according to rule score
-    score_list = []
+    edge_trace_list = []  # For varying the edge thickness according to rule rule_compliance
+    rule_compliance_list = []
     all_edges = list(nx_graph.edges())
     # change_flag = False
     for edge in all_edges:
@@ -875,13 +894,14 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
                 # change_flag = True
                 continue
 
-        power_law = [edge[0], edge[1], innov.relation[1].b[edge[0], edge[1]], innov.relation[1].c[edge[0], edge[1]]]
+        power_law = [edge[0], edge[1], innov_normalized.relation[1].b[edge[0], edge[1]],
+                     innov_normalized.relation[1].c[edge[0], edge[1]],
+                     innov_normalized.relation[1].evaluation_metric[edge[0], edge[1]]]
 
         rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
             = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value, power_law=[power_law],
                                   power_law_max_error=power_law_max_error, const_tol=const_tol)
-        score = len(rule_compliance_id) / data_arr.shape[0]
-        score_list.append(score)
+        rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
         # x0, y0 = G.nodes[edge[0]]['pos']
         # x1, y1 = G.nodes[edge[1]]['pos']
         x0, y0 = node_pos[edge[0]]
@@ -893,10 +913,10 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
         edge_y.append(y1)
         edge_y.append(None)
 
-        edge_width = 0.5 + score*(5 - 0.5)
-        print(edge[0], edge[1], score, edge_width)
+        edge_width = 0.5 + power_law[-1]*(5 - 0.5)
+        print(edge[0], edge[1], rule_compliance, edge_width)
         edge_trace_list.append(
-            go.Scatter(x=[x0, x1], y=[y0, y1], hovertemplate=f"Score = {score}",
+            go.Scatter(x=[x0, x1], y=[y0, y1], hovertemplate=f"Score = {rule_compliance}",
                        line=dict(width=edge_width, color='#888'), mode='lines'))
 
     edge_trace = go.Scatter(
@@ -977,7 +997,7 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
                     )
 
     # if change_flag:
-    #     innov.vrg[v_grp].graph = nx_graph'
+    #     innov_normalized.vrg[v_grp].graph = nx_graph'
 
     return fig
 
@@ -1002,8 +1022,8 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
     f_nd = obj[rank == 0, :]
     x_nd = x[rank == 0, :]
     n_var = x_nd.shape[1]
-    vrg_innov = get_innovization(nearest_gen_value, x_nd, const_tol)
-    x_nd_normalized = vrg_innov.normalize_data(x_nd)
+    vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
+    x_nd_normalized = vrg_innov_normalized.normalize_data(x_nd)
     legendgroup = 1
     selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
                                                             selected_row_indices=derived_virtual_selected_rows)
@@ -1014,8 +1034,8 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
         b = float(b)
         c = float(c)
 
-        ll_i, ul_i = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
-        ll_j, ul_j = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
+        ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
+        ll_j, ul_j = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
 
         xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
         xi = c / (xj ** b)
@@ -1059,7 +1079,7 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
         j, mean_xj = law
         j = int(j)
         mean_xj = float(mean_xj)
-        ll_i, ul_i = vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1]
+        ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
         xi = np.linspace(ll_i, ul_i, int(100 * (ul_i - ll_i)))
         # xj = ((innov.normalize_to_range[0]
         #       + (mean_xj - xl[j])/(xu[j] - xl[j])*(innov.normalize_to_range[1] - innov.normalize_to_range[0]))
@@ -1084,7 +1104,7 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
         # else:
         #     warnings.warn("Incorrect length of power law list.")
     # Plot xi = xj line
-    xi = np.linspace(vrg_innov.normalize_to_range[0], vrg_innov.normalize_to_range[1], 100)
+    xi = np.linspace(vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1], 100)
     return_data['data'] += \
         [
             go.Scatter(
@@ -1115,7 +1135,7 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
             # 'autorange': True,
             # 'automargin': True,
             # 'rangemode': 'tozero',
-            'range': [vrg_innov.normalize_to_range[0] * wl, vrg_innov.normalize_to_range[1] * wu],
+            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
         },
         yaxis={
             'title': 'x\u0302j'.translate(sub_ij),
@@ -1130,7 +1150,7 @@ def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_sel
             # 'autorange': True,
             # 'automargin': True,
             # 'rangemode': 'tozero',
-            'range': [vrg_innov.normalize_to_range[0] * wl, vrg_innov.normalize_to_range[1] * wu],
+            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
         },
         margin={'l': 50, 'b': 50, 't': 50, 'r': 50},
         height=550,

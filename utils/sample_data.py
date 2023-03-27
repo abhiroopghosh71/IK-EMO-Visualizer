@@ -42,7 +42,7 @@ def generate_data(problem_name, output_path):
 
 if __name__ == '__main__':
     np.random.seed(713)
-    problem_name_default = 'truss2d'
+    problem_name_default = 'welded_beam'
     out_folder_path = os.path.join('data', problem_name_default)
     if not os.path.exists(out_folder_path):
         os.makedirs(out_folder_path)
