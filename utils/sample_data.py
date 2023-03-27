@@ -25,7 +25,7 @@ def generate_data(problem_name, output_path):
 
     plt.figure(figsize=(7, 5))
     plt.scatter(res.F[:, 0], res.F[:, 1], s=30, facecolors='none', edgecolors='r')
-    plt.title("Design Space")
+    plt.title("Objective Space")
 
     np.savetxt(os.path.join(output_path, 'X.DAT'), res.X, delimiter=',')
     np.savetxt(os.path.join(output_path, 'F.DAT'), res.F, delimiter=',')
@@ -47,5 +47,5 @@ if __name__ == '__main__':
         out_folder_path = os.path.join('data', sample_problem_name)
         if not os.path.exists(out_folder_path):
             os.makedirs(out_folder_path)
-        generate_data(problem_name=problem_list, output_path=out_folder_path)
-        plt.show()
+        generate_data(problem_name=sample_problem_name, output_path=out_folder_path)
+    plt.show()

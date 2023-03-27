@@ -30,19 +30,26 @@ Then, generate the sample data files:
 Usage
 ********************************************************************************
 
+All commands are run on a terminal (bash, command prompt, etc.).
+
 Welded beam optimization problem data:
+--------------------------------------------------------------------------------
 
 .. code-block:: bash
 
     python main.py --X-file "data/welded_beam/X.DAT" --F-file "data/welded_beam/F.DAT" --params-file "data/welded_beam/params.DAT" --port 8050
 
+This will launch a Dash server on port 8050. Follow the link given in the terminal to open IK-EMO-Viz on a browser.
+
 2D-truss optimization problem data:
+--------------------------------------------------------------------------------
 
 .. code-block:: bash
 
     python main.py --X-file "data/truss2d/X.DAT" --F-file "data/truss2d/F.DAT" --params-file "data/truss2d/params.DAT" --port 8051
 
 User-defined optimization problem data:
+--------------------------------------------------------------------------------
 
 IK-EMO-Viz requires three files:
 
