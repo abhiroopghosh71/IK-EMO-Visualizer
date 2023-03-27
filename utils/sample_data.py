@@ -1,13 +1,12 @@
 import json
-
-import numpy as np
-from pymoo.problems import get_problem
-from pymoo.visualization.scatter import Scatter
-from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.termination import get_termination
-from pymoo.optimize import minimize
-import matplotlib.pyplot as plt
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.optimize import minimize
+from pymoo.problems import get_problem
+from pymoo.termination import get_termination
 
 
 def generate_data(problem_name, output_path):
@@ -26,7 +25,7 @@ def generate_data(problem_name, output_path):
 
     plt.figure(figsize=(7, 5))
     plt.scatter(res.F[:, 0], res.F[:, 1], s=30, facecolors='none', edgecolors='r')
-    plt.title("Design Space")
+    plt.title("Objective Space")
 
     np.savetxt(os.path.join(output_path, 'X.DAT'), res.X, delimiter=',')
     np.savetxt(os.path.join(output_path, 'F.DAT'), res.F, delimiter=',')
@@ -41,10 +40,12 @@ def generate_data(problem_name, output_path):
 
 
 if __name__ == '__main__':
+    # Generate data for sample problems
     np.random.seed(713)
-    problem_name_default = 'welded_beam'
-    out_folder_path = os.path.join('data', problem_name_default)
-    if not os.path.exists(out_folder_path):
-        os.makedirs(out_folder_path)
-    generate_data(problem_name=problem_name_default, output_path=out_folder_path)
+    problem_list = ['truss2d', 'welded_beam']
+    for sample_problem_name in problem_list:
+        out_folder_path = os.path.join('data', sample_problem_name)
+        if not os.path.exists(out_folder_path):
+            os.makedirs(out_folder_path)
+        generate_data(problem_name=sample_problem_name, output_path=out_folder_path)
     plt.show()
