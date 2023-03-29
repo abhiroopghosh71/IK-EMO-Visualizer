@@ -48,19 +48,24 @@ def construct_layout(args, gen_arr, query):
     html_layout = [
         html.Div([
             html.Div([
-                html.H1(children='IK-EMO Visualizer',
-                        style={'font-weight': 'normal'})],
-                        style={'display': 'inline-block'}),
-            html.Div([
-                html.H5(children='v0.2.0.0',
+                html.H3(children='IK-EMO Visualizer',
                         style={'font-weight': 'normal'})
-                ], style={'display': 'inline-block', 'vertical-align': 'bottom'}),
+            ], style={'display': 'inline-block', 'width': '50%', 'text-align': 'left'}),
+            html.Div([
+                html.Div(children='Version 0.2.0.0',
+                         style={'font-weight': 'normal', 'text-align': 'right'}),
+                html.Div(children='Copyright \u00A9 2023 ',
+                         style={'font-weight': 'normal', 'display': 'inline-block', 'text-align': 'right'}),
+                html.A(children='Abhiroop Ghosh', href='https://abhiroopghosh.com', target="_blank",
+                       style={'display': 'inline-block'})
+                ], style={'display': 'inline-block', 'width': '50%', 'text-align': 'right',
+                          'vertical-align': 'bottom', 'padding': '0px 10px 10px 0px'}),
         ],
-            style={'padding': '10px 0px 10px 0px', 'background-color': '#5F4F93',  # '#059862',
-                   'margin': '0px 0px 20px 0px',
+            style={'padding': '0px 10px 0px 10px', 'background-color': '#5F4F93',  # '#059862',
+                   'margin': '0px 0px 10px 0px',
                    'border-bottom': '1px #EBEDEF solid',
                    # 'font-family': "Arial",
-                   'color': 'white', 'text-align': 'center',
+                   'color': 'white',
                    # 'position': 'sticky', "top": '0'
                    },
         ),
