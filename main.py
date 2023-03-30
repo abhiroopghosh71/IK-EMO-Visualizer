@@ -185,10 +185,9 @@ def get_innovization(current_gen, data_arr, const_tol=1e-3, rerun=False):
 @app.callback(
     [Output(component_id='var-group-selector', component_property='options'),
      Output(component_id='var-group-selector', component_property='value')],
-    Input('cross-filter-gen-slider', 'value'),
-    State("const_tol", "value")
+    Input('cross-filter-gen-slider', 'value')
 )
-def update_var_group_list(selected_gen, const_tol):
+def update_var_group_list(selected_gen, const_tol=1e-3):
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
     x_nd = x[rank == 0, :]
     vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
@@ -202,17 +201,17 @@ def update_var_group_list(selected_gen, const_tol):
     return var_group_data, ['0']
 
 
-@app.callback(
-    [Output(component_id='constant-rule-checklist', component_property='options'),
-     Output(component_id='constant-rule-checklist', component_property='value')],
-    [Input('cross-filter-gen-slider', 'value'),
-     Input("const_tol", "value"),
-     Input("minscore_constant", "value"),
-     Input(component_id='objective-space-scatter', component_property='selectedData'),
-     Input("constant-rule-select-all", "value"),
-     Input('var-group-selector', 'value')],
-    [State(component_id='constant-rule-checklist', component_property='options')]
-)
+# @app.callback(
+#     [Output(component_id='constant-rule-checklist', component_property='options'),
+#      Output(component_id='constant-rule-checklist', component_property='value')],
+#     [Input('cross-filter-gen-slider', 'value'),
+#      Input("const_tol", "value"),
+#      Input("minscore_constant", "value"),
+#      Input(component_id='objective-space-scatter', component_property='selectedData'),
+#      Input("constant-rule-select-all", "value"),
+#      Input('var-group-selector', 'value')],
+#     [State(component_id='constant-rule-checklist', component_property='options')]
+# )
 def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
                                    selected_data,
                                    constant_rule_all_selected,
@@ -295,15 +294,15 @@ def update_constant_rule_checklist(selected_gen, const_tol, minscore_constant,
 
 @app.callback(
     [
-        Output('datatable-row-ids', 'selected_rows'),
+        Output('power-law-datatable-row-ids', 'selected_rows'),
         Output('power-law-select-all', 'value')
     ],
     [
         Input('power-law-select-all', 'value'),
-        Input('datatable-row-ids', 'selected_rows')
+        Input('power-law-datatable-row-ids', 'selected_rows')
     ],
     [
-        State('datatable-row-ids', 'derived_virtual_data'),
+        State('power-law-datatable-row-ids', 'derived_virtual_data'),
     ]
 )
 def select_all_power_law_rules(checked_settings, selected_rows, power_law_rows_all):
@@ -312,7 +311,7 @@ def select_all_power_law_rules(checked_settings, selected_rows, power_law_rows_a
             return list(range(len(power_law_rows_all))), checked_settings
         else:
             return [], checked_settings
-    elif ctx.triggered_id == 'datatable-row-ids' and len(selected_rows) != len(power_law_rows_all):
+    elif ctx.triggered_id == 'power-law-datatable-row-ids' and len(selected_rows) != len(power_law_rows_all):
         return selected_rows, []
     else:
         return selected_rows, checked_settings
@@ -320,9 +319,9 @@ def select_all_power_law_rules(checked_settings, selected_rows, power_law_rows_a
 
 # @app.callback(
 #     Output('power-law-select-all', 'value'),
-#     Input('datatable-row-ids', 'selected_rows'),
+#     Input('power-law-datatable-row-ids', 'selected_rows'),
 #     [
-#         State('datatable-row-ids', 'derived_virtual_data'),
+#         State('power-law-datatable-row-ids', 'derived_virtual_data'),
 #         State('power-law-select-all', 'value')
 #      ]
 # )
@@ -334,15 +333,15 @@ def unselect_select_all(selected_rows, power_law_rows_all, select_all_checkbox):
 
 
 @app.callback(
-    Output('datatable-row-ids', 'data'),
+    Output('power-law-datatable-row-ids', 'data'),
     [Input('cross-filter-gen-slider', 'value'),
      Input(component_id='objective-space-scatter', component_property='selectedData'),
      Input('var-group-selector', 'value'),
      Input('power-law-table-settings', 'value')],
     [
      # Power law table data
-     State('datatable-row-ids', 'derived_virtual_data'),
-     State('datatable-row-ids', 'derived_virtual_selected_rows')
+     State('power-law-datatable-row-ids', 'derived_virtual_data'),
+     State('power-law-datatable-row-ids', 'derived_virtual_selected_rows')
      ]
 )
 def update_power_law_rule_table(selected_gen,
@@ -507,18 +506,18 @@ def parse_rule_table_selected_row(rule_table_rows_all, selected_row_indices):
 @app.callback(
     Output('objective-space-scatter', 'figure'),
     [Input('cross-filter-gen-slider', 'value'),
-     Input('inequality-rule-checklist', 'value'),
+     # Input('inequality-rule-checklist', 'value'),
      # Data obtained on clicking a point or selecting one or more points
      Input(component_id='objective-space-scatter', component_property='selectedData'),
      Input(component_id='objective-space-scatter', component_property='clickData'),
      # Power law table data
-     Input('datatable-row-ids', "derived_virtual_data"),
-     Input('datatable-row-ids', "derived_virtual_selected_rows")
+     Input('power-law-datatable-row-ids', "derived_virtual_data"),
+     Input('power-law-datatable-row-ids', "derived_virtual_selected_rows")
      ]
 )
-def update_objective_space_scatter_graph(selected_gen, var_grp_str, selected_data, click_data,
+def update_objective_space_scatter_graph(selected_gen, selected_data, click_data,
                                          power_law_rows_all, derived_virtual_selected_rows,
-                                         power_law_max_error=0.01, const_tol=1e-3):
+                                         power_law_max_error=0.01, const_tol=1e-3, var_grp_str=[]):
     ctx = dash.callback_context
 
     # In the power law data table, for each selected row create a list [i, j, b, c] representing xi*xj^b = c
@@ -698,10 +697,9 @@ def convert_checklist_str_to_list(power_law):
 @app.callback(
     Output('power-law-evolution-graph', 'figure'),
     Input('plaw_evolution_vars', 'value'),
-    [State('cross-filter-gen-slider', 'value'),
-     State("const_tol", "value")]
+    State('cross-filter-gen-slider', 'value')
 )
-def update_power_law_evolution_plot(plaw_var, current_gen, const_tol):
+def update_power_law_evolution_plot(plaw_var, current_gen, const_tol=1e-3):
     plaw_str = plaw_var.split(',')
     i, j = int(plaw_str[0]), int(plaw_str[1])
     return_data = {'data': []}
@@ -831,8 +829,8 @@ def toggle_pause_button(pause_click, title):
      ],
     [State(component_id='objective-space-scatter', component_property='selectedData'),
      # Power law table data
-     State('datatable-row-ids', "derived_virtual_data"),
-     State('datatable-row-ids', "derived_virtual_selected_rows")]
+     State('power-law-datatable-row-ids', "derived_virtual_data"),
+     State('power-law-datatable-row-ids', "derived_virtual_selected_rows")]
 )
 def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var_grp_selected,
                     selected_data, power_law_rows_all, derived_virtual_selected_rows,
@@ -1037,15 +1035,17 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
 
 @app.callback(
     Output('power-law-graph', 'figure'),
-    [Input('constant-rule-checklist', 'value'),
-     # Power law table data
-     Input('datatable-row-ids', "derived_virtual_data"),
-     Input('datatable-row-ids', "derived_virtual_selected_rows")],
-    [State('cross-filter-gen-slider', 'value'),
-     State("const_tol", "value")]
+    [
+        # Power law table data
+        Input('power-law-datatable-row-ids', "derived_virtual_data"),
+        Input('power-law-datatable-row-ids', "derived_virtual_selected_rows")
+    ],
+    [
+        State('cross-filter-gen-slider', 'value')
+    ]
 )
-def update_power_law_plot(constant_rule, power_law_rows_all, derived_virtual_selected_rows,
-                          selected_gen, const_tol):
+def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
+                          selected_gen, const_tol=1e-3, constant_rule=()):
     return_data = {'data': []}
     plaw_evolution_plot = {'data': []}
 
@@ -1373,8 +1373,8 @@ def update_pcp(selected_gen, selected_data):
 #     [Input(component_id='objective-space-scatter', component_property='clickData'),
 #      Input('inequality-rule-checklist', 'value'),
 #      # Power law table data
-#      Input('datatable-row-ids', "derived_virtual_data"),
-#      Input('datatable-row-ids', "derived_virtual_selected_rows")
+#      Input('power-law-datatable-row-ids', "derived_virtual_data"),
+#      Input('power-law-datatable-row-ids', "derived_virtual_selected_rows")
 #      ]
 # )
 # def update_design_plot(click_data,
@@ -1583,8 +1583,8 @@ def update_pcp(selected_gen, selected_data):
 #     Input(component_id='set_rank_power', component_property='value'),
 #     [State(component_id='cross-filter-gen-slider', component_property='value'),
 #      # Power law table data
-#      State('datatable-row-ids', "derived_virtual_data"),
-#      State('datatable-row-ids', "derived_virtual_selected_rows"),
+#      State('power-law-datatable-row-ids', "derived_virtual_data"),
+#      State('power-law-datatable-row-ids', "derived_virtual_selected_rows"),
 #      ]
 # )
 def set_rule_preference(rank_power_law, current_gen,

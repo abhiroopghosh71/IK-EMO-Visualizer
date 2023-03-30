@@ -3,7 +3,7 @@ import pandas as pd
 from dash import html, dcc
 from plotly import graph_objs as go
 
-from gui.dcc_elements import get_dash_rule_table, get_rule_table_checklists
+from gui.dcc_elements import get_dash_rule_table, get_rule_table_checklists, get_rule_table_div
 from utils.postprocess.statistical_performance import calc_hv
 
 
@@ -34,10 +34,15 @@ tab_disabled_style = {
 }
 
 POWER_LAW_TABLE_COLUMNS = ["Power law", "i", "j", "b", "c", "Corr.", "Compliance", "Metric"]
+CONSTANT_RULE_TABLE_COLUMNS = ["Constant rule", "i", "c", "Corr.", "Compliance", "Metric"]
+INEQUALITY_RULE_TABLE_COLUMNS = ["Inequality rule", "i", "j", "Rel.", "Corr.", "Compliance", "Metric"]
 
 
 def construct_layout(args, gen_arr, query):
     power_law_df = pd.DataFrame(data=[], columns=POWER_LAW_TABLE_COLUMNS)
+    constant_rule_df = pd.DataFrame(data=[], columns=CONSTANT_RULE_TABLE_COLUMNS)
+    inequality_rule_df = pd.DataFrame(data=[], columns=INEQUALITY_RULE_TABLE_COLUMNS)
+
     app_mode = args.app_mode
     # default_pause_play_icon = PAUSE_ICON
     # if os.path.exists(os.path.join(args.result_path, '.pauserun')):
@@ -210,103 +215,21 @@ def construct_layout(args, gen_arr, query):
                     dcc.Tabs(id="innov-rules-tab-group", value='power-law-list', children=[
                         dcc.Tab(label='Power laws', value='power-law-list', style=tab_style,
                                 disabled=False, disabled_style=tab_disabled_style,
-                                selected_style=tab_selected_style, children=[
-                                    html.Div([
-                                        dcc.Checklist(
-                                            id='power-law-select-all',
-                                            options=[{'label': 'Select all', 'value': 'select_all', 'disabled': False}],
-                                            value=[],
-                                            inline=True
-                                        )], style={'display': 'inline-block'}),
-                                    html.Div([
-                                        dcc.Checklist(
-                                            id='power-law-table-settings',
-                                            options=get_rule_table_checklists(),
-                                            value=['normalized_rule'],
-                                            inline=True
-                                        )], style={'display': 'inline-block'}),
-                                    get_dash_rule_table(rule_df=power_law_df,
-                                                        table_id='datatable-row-ids')], className='ruleList'),
+                                selected_style=tab_selected_style,
+                                children=get_rule_table_div(html_id_prefix='power-law',
+                                                            rule_df=power_law_df),
+                                className='ruleList'),
                         dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
-                                disabled=True, disabled_style=tab_disabled_style,
-                                selected_style=tab_selected_style, children=[
-                                    html.Div([  # Bordered region
-                                        # Rule display settings
-                                        html.Div([
-                                            html.Div([
-                                                html.H6(children='Min. rule score', id='maxscore_constant_text'),
-                                                dcc.Input(id="minscore_constant", type="number",
-                                                          placeholder="Max. constant rule score", debounce=True,
-                                                          inputMode='numeric', value=0, className='ruleSetting'),
-                                                html.Div([
-                                                    html.H6(children='Const. tol.', id='const_tol_text'),
-                                                    dcc.Input(id="const_tol", type="number",
-                                                              placeholder="Constant rule tol.", debounce=True,
-                                                              inputMode='numeric', value=0.01,
-                                                              className='ruleSetting'),
-                                                ]),
-                                            ]),
-                                        ], style={'width': '30%', 'height': '100%', 'display': 'inline-block',
-                                                  'vertical-align': 'top'}),
-                                        # Rule list
-                                        html.Div([
-                                            dcc.Checklist(
-                                                id='constant-rule-select-all',
-                                                options=[
-                                                    {'label': 'Select all', 'value': 'select_all'},
-                                                ],
-                                                value=[]  # ['NYC', 'MTL']
-                                            ),
-                                            dcc.Checklist(
-                                                id='constant-rule-checklist',
-                                                options=[],
-                                                value=[]
-                                            )
-                                        ], style={'width': '68%', 'height': '100%', 'display': 'inline-block',
-                                                  'overflow': 'scroll'})
-                                    ], className='ruleList'),
-                                ]),
+                                disabled=False, disabled_style=tab_disabled_style,
+                                selected_style=tab_selected_style,
+                                children=get_rule_table_div(html_id_prefix='constant-rule',
+                                                            rule_df=constant_rule_df)),
                         dcc.Tab(label='Inequality rules', value='inequality-rule-list', style=tab_style,
-                                disabled=True, disabled_style=tab_disabled_style,
-                                selected_style=tab_selected_style, children=[
-                                    html.Div([  # Bordered region
-                                        # Rule display settings
-                                        html.Div([
-                                            html.Div([
-                                                html.H6(children='Min. rule score', id='minscore_ineq_text'),
-                                                dcc.Input(id="minscore_ineq", type="number",
-                                                          placeholder="Min. ineq. score",
-                                                          debounce=True,
-                                                          inputMode='numeric', value=0, className='ruleSetting'),
-                                            ], style={'display': 'inline-block'}),
-                                            html.Div([
-                                                html.H6(children='Min. var. corr.', id='mincorr_ineq_text'),
-                                                dcc.Input(id="mincorr_ineq", type="number",
-                                                          placeholder="Min. ineq. corr",
-                                                          debounce=True,
-                                                          inputMode='numeric', value=0, className='ruleSetting'),
-                                            ]),
-                                        ], style={'width': '30%', 'height': '100%', 'display': 'inline-block',
-                                                  'vertical-align': 'top'}),
-                                        # Rule list
-                                        html.Div([
-                                            dcc.Checklist(
-                                                id='ineq-select-all',
-                                                options=[
-                                                    {'label': 'Select all', 'value': 'select_all'},
-                                                ],
-                                                value=[]
-                                            ),
-                                            dcc.Checklist(
-                                                id='inequality-rule-checklist',
-                                                options=[
-                                                ],
-                                                value=[]
-                                            )
-                                        ], style={'width': '68%', 'height': '100%', 'display': 'inline-block',
-                                                  'overflow': 'scroll'})
-                                    ], className='ruleList')
-                                ]),
+                                disabled=False, disabled_style=tab_disabled_style,
+                                selected_style=tab_selected_style,
+                                children=get_rule_table_div(html_id_prefix='constant-rule',
+                                                            rule_df=inequality_rule_df),
+                                className='ruleList')
                     ]),
                 ], style={'width': '58%', 'display': 'inline-block', 'vertical-align': 'top'}),
                 html.Div([

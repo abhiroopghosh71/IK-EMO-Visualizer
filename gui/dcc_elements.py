@@ -1,4 +1,4 @@
-from dash import html, dash_table
+from dash import html, dash_table, dcc
 
 
 def get_rule_table_checklists():
@@ -7,7 +7,7 @@ def get_rule_table_checklists():
     ]
 
 
-def get_dash_rule_table(rule_df, table_id):
+def get_dash_rule_table(rule_df, table_id, hidden_columns=()):
     return html.Div([
             dash_table.DataTable(
                 id=table_id,
@@ -27,13 +27,10 @@ def get_dash_rule_table(rule_df, table_id):
                 page_action='native',
                 page_current=0,
                 page_size=10,
-                hidden_columns=[],
+                hidden_columns=hidden_columns,
                 style_as_list_view=False,
                 style_cell={'padding': '5px'},
-                style_header={
-                    # 'backgroundColor': 'white',
-                    'fontWeight': 'bold'
-                },
+                style_header={'fontWeight': 'bold'},
                 style_cell_conditional=[
                     {
                         'if': {'column_id': c},
@@ -47,3 +44,27 @@ def get_dash_rule_table(rule_df, table_id):
             ),
         ], style={'font-size': '1.5em',
                   'overflow': 'scroll'})
+
+
+def get_rule_table_div(html_id_prefix, rule_df):
+    """This function returns an HTML Div consisting of the rule tables and associated settings."""
+    if html_id_prefix != '':
+        html_id_prefix += '-'
+
+    return [
+        html.Div([
+            dcc.Checklist(
+                id=f'{html_id_prefix}select-all',
+                options=[{'label': 'Select all', 'value': 'select_all', 'disabled': False}],
+                value=[],
+                inline=True
+            )], style={'display': 'inline-block'}),
+        html.Div([
+            dcc.Checklist(
+                id=f'{html_id_prefix}table-settings',
+                options=get_rule_table_checklists(),
+                value=['normalized_rule'],
+                inline=True
+            )], style={'display': 'inline-block'}),
+        get_dash_rule_table(rule_df=rule_df,
+                            table_id=f'{html_id_prefix}datatable-row-ids')]
