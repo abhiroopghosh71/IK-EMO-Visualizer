@@ -250,6 +250,11 @@ class PowerLaw:
 
                     self.evaluation_metric[i, j] = mse_orig
                     self.evaluation_metric[j, i] = self.evaluation_metric[i, j]
+                elif self.evaluation_metric_name.lower() == 'mse_log':
+                    mse_logspace = mean_squared_error(y, xi_log_predicted)
+
+                    self.evaluation_metric[i, j] = mse_logspace
+                    self.evaluation_metric[j, i] = self.evaluation_metric[i, j]
                 elif self.evaluation_metric_name.lower() == 'r2':
                     self.evaluation_metric[i, j] = reg.score(xj_log_data, y)
                     self.evaluation_metric[j, i] = self.evaluation_metric[i, j]

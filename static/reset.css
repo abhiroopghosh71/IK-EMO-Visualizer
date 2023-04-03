@@ -1,5 +1,4 @@
-body
-{
+body {
     margin: 0;
     background-color: #EBEDEF;
 }
@@ -13,6 +12,29 @@ body
 }
 div {
     white-space: pre;
+}
+
+.button {
+    background-color: #04AA6D;
+    color: white;
+    border-width: 0;
+}
+.button:hover {
+  background-color: #059862; /* Green */
+  color: white;
+}
+.button:focus {
+  color: white;
+}
+
+.graphbutton {
+    padding: 0;
+    border: none;
+    background: none;
+    margin-left: 10px;
+    font-size: 20px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .row {
@@ -91,7 +113,7 @@ H2.widgetTitle
 .video__icon {
   position: absolute;
   width: 30px;
-  }
+}
 
 /*   .video__icon .circle--outer {
     border: 1px solid #e50040;

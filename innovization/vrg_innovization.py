@@ -116,8 +116,6 @@ class VRGInnovization:
         # Select rule if the evaluation_metric is above a threshold
         if 'max_error' in kwargs:
             self.rule_selection_criteria['max_error'] = kwargs['max_error']
-        else:
-            self.rule_selection_criteria['max_error'] = 0.01
         # Select top n rules based on their evaluation_metric
         if 'top_n' in kwargs:
             self.rule_selection_criteria['top_n'] = kwargs['top_n']
@@ -249,7 +247,7 @@ class VRGInnovization:
         x_min, x_max = self.normalize_to_range[0], self.normalize_to_range[1]
         training_data_normalized = x_min + (self.training_data - self.xl) / (self.xu - self.xl) * (x_max - x_min)
         with np.errstate(divide='ignore', invalid='ignore'):
-            self.correlation = np.corrcoef(training_data_normalized, rowvar=False)
+            self.correlation = np.round(np.corrcoef(training_data_normalized, rowvar=False), decimals=2)
         if self.rel_type == POWER_LAW_STR:
             for grp_indx, curr_grp in enumerate(self.groups):
                 # For every group, ignore the variables not in the group

@@ -9,13 +9,16 @@ from pymoo.problems import get_problem
 from pymoo.termination import get_termination
 
 
-def generate_data(problem_name, output_path):
-    problem = get_problem(problem_name)
+def generate_data(problem_input, output_path):
+    if type(problem_input) == str:
+        problem = get_problem(problem_input)
+    else:
+        problem = problem_input
     algorithm = NSGA2(
         pop_size=40,
         eliminate_duplicates=True
     )
-    termination = get_termination("n_gen", 40)
+    termination = get_termination("n_gen", 60)
     res = minimize(problem,
                    algorithm,
                    termination,
@@ -30,7 +33,7 @@ def generate_data(problem_name, output_path):
     np.savetxt(os.path.join(output_path, 'X.DAT'), res.X, delimiter=',')
     np.savetxt(os.path.join(output_path, 'F.DAT'), res.F, delimiter=',')
 
-    params = {'problem': problem_name,
+    params = {'problem': problem_input,
               'n_obj': problem.n_obj, 'n_var': problem.n_var,
               'xl': problem.xl.tolist(), 'xu': problem.xu.tolist(),
               'obj_label': ['f1', 'f2'], 'ignore_vars': []
@@ -42,10 +45,10 @@ def generate_data(problem_name, output_path):
 if __name__ == '__main__':
     # Generate data for sample problems
     np.random.seed(713)
-    problem_list = ['truss2d', 'welded_beam']
+    problem_list = ['truss2d', 'welded_beam', 'zdt1']
     for sample_problem_name in problem_list:
         out_folder_path = os.path.join('data', sample_problem_name)
         if not os.path.exists(out_folder_path):
             os.makedirs(out_folder_path)
-        generate_data(problem_name=sample_problem_name, output_path=out_folder_path)
+        generate_data(problem_input=sample_problem_name, output_path=out_folder_path)
     plt.show()

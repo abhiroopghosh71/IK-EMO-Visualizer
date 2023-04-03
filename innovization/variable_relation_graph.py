@@ -62,6 +62,9 @@ class VariableRelationGraph:
         else:
             print("Only directed graphs have outgoing edges")
 
+    def has_edge(self, edge_i, edge_j):
+        return self.graph.has_edge(edge_i, edge_j)
+
     def get_nodes_with_only_incoming_edges(self):
         out_deg = self.graph.out_degree()
         node_list = [n for n in out_deg if out_deg[n] == 0]

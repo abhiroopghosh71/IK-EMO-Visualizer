@@ -31,10 +31,11 @@ tab_selected_style = {
 tab_disabled_style = {
     'borderBottom': '1px solid #d6d6d6',
     'padding': '6px',
+    'cursor': 'not-allowed'
 }
 
 POWER_LAW_TABLE_COLUMNS = ["Power law", "i", "j", "b", "c", "Corr.", "Compliance", "Metric"]
-CONSTANT_RULE_TABLE_COLUMNS = ["Constant rule", "i", "c", "Corr.", "Compliance", "Metric"]
+CONSTANT_RULE_TABLE_COLUMNS = ["Constant rule", "i", "c", "Mean + sd", "Compliance", "Metric"]
 INEQUALITY_RULE_TABLE_COLUMNS = ["Inequality rule", "i", "j", "Rel.", "Corr.", "Compliance", "Metric"]
 
 
@@ -220,14 +221,15 @@ def construct_layout(args, gen_arr, query):
                                                             rule_df=power_law_df),
                                 className='ruleList'),
                         dcc.Tab(label='Constant rules', value='constant-rule-list', style=tab_style,
-                                disabled=False, disabled_style=tab_disabled_style,
+                                disabled=True, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style,
                                 children=get_rule_table_div(html_id_prefix='constant-rule',
-                                                            rule_df=constant_rule_df)),
+                                                            rule_df=constant_rule_df,
+                                                            normalize_enabled=False)),
                         dcc.Tab(label='Inequality rules', value='inequality-rule-list', style=tab_style,
-                                disabled=False, disabled_style=tab_disabled_style,
+                                disabled=True, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style,
-                                children=get_rule_table_div(html_id_prefix='constant-rule',
+                                children=get_rule_table_div(html_id_prefix='inequality-rule',
                                                             rule_df=inequality_rule_df),
                                 className='ruleList')
                     ]),
@@ -237,32 +239,26 @@ def construct_layout(args, gen_arr, query):
                         dcc.Tab(label='Variable Relation Graph', value='vrg', style=tab_style,
                                 disabled=False, disabled_style=tab_disabled_style,
                                 selected_style=tab_selected_style, children=[
-                                   dcc.Dropdown([], id='var-group-selector', searchable=False,
-                                                style={'width': '50%', 'display': 'inline-block',
-                                                       'vertical-align': 'middle'}),
-                                   # dcc.Input(
-                                   #     id="vrg_vars",
-                                   #     type="text", placeholder="Var pairs", debounce=True,
-                                   #     inputMode='numeric', value=None,
-                                   #     style={'width': '10%', 'display': 'inline-block'}
-                                   # ),
-                                   html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
-                                               style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                      'margin-left': '10px', 'font-size': '20px',
-                                                      'display': 'inline-block',
-                                                       'vertical-align': 'middle'}),
-                                   html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
-                                               style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                      'margin-left': '10px', 'font-size': '20px',
-                                                      'display': 'inline-block',
-                                                       'vertical-align': 'middle'}),
-                                   html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
-                                               style={'padding': '0', 'border': 'none', 'background': 'none',
-                                                      'margin-left': '10px', 'font-size': '35px',
-                                                      'display': 'inline-block',
-                                                       'vertical-align': 'middle'}),
-                                   dcc.Graph(id='vrg-fig', hoverData={'points': [{'customdata': ''}]},
-                                             config=config)], className='ruleList'),
+                                    html.Div([
+                                        html.Div([
+                                            dcc.Dropdown([], id='var-group-selector', searchable=False),
+                                        ], style={'width': '20%', 'display': 'inline-block',
+                                                  'vertical-align': 'middle'}),
+                                        html.Div([
+                                            html.Button('\u2705', id='vrg-include', n_clicks=0, title='Add edge',
+                                                        className='graphbutton'),
+                                            html.Button('\u274C', id='vrg-exclude', n_clicks=0, title='Remove edge',
+                                                        className='graphbutton'),
+                                            html.Button('\u21BA', id='vrg-reset', n_clicks=0, title='Reset VRG',
+                                                        className='graphbutton',
+                                                        style={'font-size': '35px'})
+                                        ], style={'display': 'inline-block'})
+                                    ], style={'padding': '20px 10px 0px 10px'}),
+                                    html.Div([
+                                        dcc.Graph(id='vrg-fig', hoverData={'points': [{'customdata': ''}]},
+                                                  config=config, style={'overflow': 'scroll', 'padding': '0'})
+                                    ], style={'padding': '0px 10px 0px 10px', 'overflow': 'scroll'})
+                                ], className='ruleList'),
 
                         dcc.Tab(label='Rule Plot', value='rule-plot', style=tab_style,
                                 disabled=False, disabled_style=tab_disabled_style,
@@ -350,6 +346,18 @@ def blank_fig():
     fig.update_yaxes(showgrid=False, showticklabels=False, zeroline=False)
 
     return fig
+
+
+def get_blank_vrg_figure():
+    return go.Figure(
+        data=[],
+        layout=go.Layout(
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20, l=5, r=5, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+    )
 
 
 def get_hv_fig(hv_list, max_gen=None):
