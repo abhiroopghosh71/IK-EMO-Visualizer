@@ -381,7 +381,7 @@ def update_power_law_rule_table(selected_gen,
         update_power_law_rule_table.innov_normalized = None
 
     # Check whether normalized rules need to be dispalyed
-    if 'normalized_rule' in checked_settings_power_law:
+    if NORMALIZED_RULE in checked_settings_power_law:
         normalize_flag = True
     else:
         normalize_flag = False
@@ -1144,28 +1144,32 @@ def update_vrg_plot(selected_gen, include_click, exclude_click, reset_click, var
     [
         # Power law table data
         Input('power-law-datatable-row-ids', "derived_virtual_data"),
-        Input('power-law-datatable-row-ids', "derived_virtual_selected_rows")
+        Input('power-law-datatable-row-ids', "derived_virtual_selected_rows"),
+        Input('power-law-table-settings', 'value')
     ],
     [
         State('cross-filter-gen-slider', 'value')
     ]
 )
-def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
+def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, power_law_checked_settings,
                           selected_gen, const_tol=1e-3, constant_rule=()):
     return_data = {'data': []}
     plaw_evolution_plot = {'data': []}
+    if NORMALIZED_RULE in power_law_checked_settings:
+        normalize_flag = True
+    else:
+        normalize_flag = False
 
     nearest_gen_value, x, obj, constr, rank, obj_label = get_current_gen_data(selected_gen, gen_arr, query)
-    training_data_gen_indx = nearest_gen_value - 1  # Training data is the previous element in gen_arr
-
-    f_nd = obj[rank == 0, :]
     x_nd = x[rank == 0, :]
-    n_var = x_nd.shape[1]
+
     vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
     x_nd_normalized = vrg_innov_normalized.normalize_data(x_nd)
-    legendgroup = 1
     selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
                                                             selected_row_indices=derived_virtual_selected_rows)
+
+    wl, wu = 0.95, 1.05
+    ax_range = [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu]
     for indx, power_law in enumerate(selected_power_law_rows):
         i, j, b, c = power_law
         i = int(i)
@@ -1173,45 +1177,58 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
         b = float(b)
         c = float(c)
 
-        ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
-        ll_j, ul_j = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
+        if not normalize_flag:
+            if indx == 0:
+                ax_range[0], ax_range[1] = wl * np.min(x_nd[:, i]), wu * np.max(x_nd[:, j])
+            elif np.min(x_nd[:, i]) < ax_range[0]:
+                ax_range[0] = wl * np.min(x_nd[:, i])
+            elif np.max(x_nd[:, j]) > ax_range[1]:
+                ax_range[1] = wu * np.max(x_nd[:, j])
 
-        xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
-        xi = c / (xj ** b)
-        xj = xj[(xi >= ll_i) & (xi <= ul_i)]
-        xi = xi[(xi >= ll_i) & (xi <= ul_i)]
+        for indx, power_law in enumerate(selected_power_law_rows):
+            i, j, b, c = power_law
+            i = int(i)
+            j = int(j)
+            b = float(b)
+            c = float(c)
+            ll_i, ul_i = ax_range
+            ll_j, ul_j = ax_range
+            xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
+            xi = c / (xj ** b)
+            # xj = xj[(xi >= ll_i) & (xi <= ul_i)]
+            # xi = xi[(xi >= ll_i) & (xi <= ul_i)]
 
-        return_data['data'] += \
-            [
-                go.Scatter(
-                    x=xi,
-                    y=xj,
-                    mode='lines',
-                    name=f"x\u0302{i} * x\u0302{j}".translate(sub) + f"{np.round(b, decimals=2)}".translate(sup) +
-                         f" = {np.round(c, decimals=2)}",
-                    marker={
-                        'size': 10,
-                        'opacity': 0.5,
-                        'line': {'width': 0.5, 'color': 'white'}
-                    },
-                    showlegend=True,
-                    # legendgroup=f'group{legendgroup}'
-                ),
-                go.Scatter(
-                    x=x_nd_normalized[:, i],
-                    y=x_nd_normalized[:, j],
-                    mode='markers',
-                    # name=f"Actual x\u0302{i}, x\u0302{j}".translate(sub),
-                    name=f"Offspring ND set".translate(sub),
-                    marker={
-                        # 'size': 10,
-                        'opacity': 0.5,
-                        'symbol': 'x'
-                    },
-                    showlegend=False,
-                    # legendgroup=f'group{legendgroup}'
-                ),
-            ]
+            if normalize_flag:
+                xi_to_plot, xj_to_plot = x_nd_normalized[:, i], x_nd_normalized[:, j]
+            else:
+                xi_to_plot, xj_to_plot = x_nd[:, i], x_nd[:, j]
+            return_data['data'] += \
+                [
+                    go.Scatter(
+                        x=xi,
+                        y=xj,
+                        mode='lines',
+                        name=f"x\u0302{i} * x\u0302{j}".translate(sub) + f"{np.round(b, decimals=2)}".translate(sup) +
+                             f" = {np.round(c, decimals=2)}",
+                        marker={
+                            'size': 10,
+                            'opacity': 0.5,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                        showlegend=True,
+                    ),
+                    go.Scatter(
+                        x=xi_to_plot,
+                        y=xj_to_plot,
+                        mode='markers',
+                        name=f"Offspring ND set".translate(sub),
+                        marker={
+                            'opacity': 0.5,
+                            'symbol': 'x'
+                        },
+                        showlegend=False,
+                    ),
+                ]
 
     for indx, law_str in enumerate(constant_rule):
         law = convert_checklist_str_to_list(law_str)
@@ -1220,9 +1237,6 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
         mean_xj = float(mean_xj)
         ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
         xi = np.linspace(ll_i, ul_i, int(100 * (ul_i - ll_i)))
-        # xj = ((innov.normalize_to_range[0]
-        #       + (mean_xj - xl[j])/(xu[j] - xl[j])*(innov.normalize_to_range[1] - innov.normalize_to_range[0]))
-        #       * np.ones_like(xi))
         xj = mean_xj * np.ones_like(xi)
         return_data['data'] += \
             [
@@ -1240,10 +1254,8 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
                 ),
             ]
 
-        # else:
-        #     warnings.warn("Incorrect length of power law list.")
     # Plot xi = xj line
-    xi = np.linspace(vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1], 100)
+    xi = np.linspace(ax_range[0], ax_range[1], 100)
     return_data['data'] += \
         [
             go.Scatter(
@@ -1260,48 +1272,36 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows,
                 showlegend=True
             ),
         ]
-    wl, wu = 0.95, 1.05
+
     return_data['layout'] = go.Layout(
         xaxis={
             'title': 'x\u0302i'.translate(sub_ij),
             'titlefont': {'size': 20},
             'tickfont': {'size': 18},
-            # 'showline': True,
             'linecolor': 'black',
             'zeroline': False,
             'mirror': True,
             'type': 'linear',
-            # 'autorange': True,
-            # 'automargin': True,
-            # 'rangemode': 'tozero',
-            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
+            'range': ax_range,
         },
         yaxis={
             'title': 'x\u0302j'.translate(sub_ij),
             'titlefont': {'size': 20},
             'tickfont': {'size': 18},
             'tickprefix': "   ",
-            # 'showline': True,
             'linecolor': 'black',
             'zeroline': False,
             'mirror': True,
             'type': 'linear',
-            # 'autorange': True,
-            # 'automargin': True,
-            # 'rangemode': 'tozero',
-            'range': [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu],
+            'range': ax_range,
         },
         margin={'l': 50, 'b': 50, 't': 50, 'r': 50},
-        height=550,
-        width=600,
+        width=500,
         legend=dict(orientation="v",
                     x=0.5, y=0.95, xanchor='left', font={'size': 20}, bordercolor="Black", borderwidth=1),
         hovermode='closest',
     )
-    legendgroup += 1
     plaw_evolution_plot['layout'] = copy.copy(return_data['layout'])
-
-    # print(return_data)
 
     # if plaw_evolution_var_pair is not None:
     #     plaw_evolution_plot['data'] += \

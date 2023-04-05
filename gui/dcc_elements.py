@@ -4,7 +4,7 @@ from include.constants import *
 
 def get_rule_table_checklists():
     return [
-        {'label': 'Use normalized vars x\u0302 \u2208 [1,2]', 'value': 'normalized_rule', 'disabled': False},
+        {'label': 'Use normalized vars x\u0302 \u2208 [1,2]', 'value': NORMALIZED_RULE, 'disabled': False},
     ]
 
 
@@ -53,7 +53,7 @@ def get_rule_table_div(html_id_prefix, rule_df, normalize_enabled=True):
         html_id_prefix += '-'
 
     if normalize_enabled:
-        normalize_checkbox = ['normalized_rule']
+        normalize_checkbox = [NORMALIZED_RULE]
     else:
         normalize_checkbox = []
 
