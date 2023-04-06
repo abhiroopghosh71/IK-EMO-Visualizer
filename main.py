@@ -6,18 +6,16 @@ from signal import signal, SIGINT
 
 import dash
 import networkx as nx
-import numpy as np
-import pandas as pd
-import plotly.graph_objs as go
-from dash import dcc, html, ctx
+from dash import ctx
 from dash.dependencies import Input, Output, State
+import plotly.express as px
 
 from gui.layout import *
+from include.constants import *
 from innovization.vrg_innovization import VRGInnovization
 from query import DemoQuery, QUERY, JSONQuery
 from utils.record_data import USER_INTERACT_DIR, POWER_LAW_RANK_FILE_PREFIX
 from utils.user_input import get_argparser
-from include.constants import *
 
 sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 sup = str.maketrans("0123456789.-", "⁰¹²³⁴⁵⁶⁷⁸⁹⋅⁻")
@@ -451,11 +449,9 @@ def update_power_law_rule_table(selected_gen,
         solution_id_nd = solution_id[rank == 0]
 
         data_arr = []
-        # print(selected_data)
         id_indx_arr = []
         if selected_data is not None:
             for data in selected_data['points']:
-                # print(data)
                 data_id = data['customdata']
                 if data_id[-2:] != 'r0':
                     continue
@@ -1187,55 +1183,61 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, pow
             elif np.max(x_nd[:, j]) > ax_range[1]:
                 ax_range[1] = wu * np.max(x_nd[:, j])
 
-        curve_plot_scaling_factor = 0
-        for indx, power_law in enumerate(selected_power_law_rows):
-            i, j, b, c = power_law
-            i = int(i)
-            j = int(j)
-            b = float(b)
-            c = float(c)
-            ll_i, ul_i = ax_range
-            ll_j, ul_j = ax_range
-            # FIXME: Danger of division by zero error
-            curve_plot_points = np.linspace(ll_j - curve_plot_scaling_factor*abs(ll_j),
-                                            ul_j + curve_plot_scaling_factor*abs(ul_j),
-                                            int(100 * (ul_j - ll_j)))
-            xj = curve_plot_points
-            xi = c / (xj ** b)
-            # xj = xj[(xi >= ll_i) & (xi <= ul_i)]
-            # xi = xi[(xi >= ll_i) & (xi <= ul_i)]
+    curve_plot_scaling_factor = 0
+    plot_color_sequence = px.colors.qualitative.Dark24
+    for indx, power_law in enumerate(selected_power_law_rows):
+        i, j, b, c = power_law
+        i = int(i)
+        j = int(j)
+        b = float(b)
+        c = float(c)
+        ll_i, ul_i = ax_range
+        ll_j, ul_j = ax_range
+        # FIXME: Danger of division by zero error
+        curve_plot_points = np.linspace(ll_j - curve_plot_scaling_factor*abs(ll_j),
+                                        ul_j + curve_plot_scaling_factor*abs(ul_j),
+                                        int(100 * (ul_j - ll_j)))
+        xj = curve_plot_points
+        xi = c / (xj ** b)
+        # xj = xj[(xi >= ll_i) & (xi <= ul_i)]
+        # xi = xi[(xi >= ll_i) & (xi <= ul_i)]
 
-            if normalize_flag:
-                xi_to_plot, xj_to_plot = x_nd_normalized[:, i], x_nd_normalized[:, j]
-            else:
-                xi_to_plot, xj_to_plot = x_nd[:, i], x_nd[:, j]
-            return_data['data'] += \
-                [
-                    go.Scatter(
-                        x=xi,
-                        y=xj,
-                        mode='lines',
-                        name=f"x\u0302{i} * x\u0302{j}".translate(sub) + f"{np.round(b, decimals=2)}".translate(sup) +
-                             f" = {np.round(c, decimals=2)}",
-                        marker={
-                            'size': 10,
-                            'opacity': 0.5,
-                            'line': {'width': 0.5, 'color': 'white'}
-                        },
-                        showlegend=True,
-                    ),
-                    go.Scatter(
-                        x=xi_to_plot,
-                        y=xj_to_plot,
-                        mode='markers',
-                        name=f"Offspring ND set".translate(sub),
-                        marker={
-                            'opacity': 0.5,
-                            'symbol': 'x'
-                        },
-                        showlegend=False,
-                    ),
-                ]
+        if normalize_flag:
+            xi_to_plot, xj_to_plot = x_nd_normalized[:, i], x_nd_normalized[:, j]
+        else:
+            xi_to_plot, xj_to_plot = x_nd[:, i], x_nd[:, j]
+        return_data['data'] += \
+            [
+                go.Scatter(
+                    x=xi,
+                    y=xj,
+                    mode='lines',
+                    name=f"x\u0302{i} * x\u0302{j}".translate(sub)
+                         + f"{np.round(b, decimals=2)}".translate(sup)
+                         + f" = {np.round(c, decimals=2)}",
+                    marker={
+                        'size': 10,
+                        'opacity': 0.5,
+                        'line': {'width': 0.5, 'color': 'white'}
+                    },
+                    line={
+                        'color': plot_color_sequence[indx]
+                    },
+                    showlegend=True
+                ),
+                go.Scatter(
+                    x=xi_to_plot,
+                    y=xj_to_plot,
+                    mode='markers',
+                    name=f"Offspring ND set".translate(sub),
+                    marker={
+                        'opacity': 0.5,
+                        'symbol': 'x',
+                        'color': plot_color_sequence[indx]
+                    },
+                    showlegend=False
+                )
+            ]
 
     for indx, law_str in enumerate(constant_rule):
         law = convert_checklist_str_to_list(law_str)
