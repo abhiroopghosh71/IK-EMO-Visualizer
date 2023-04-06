@@ -1168,7 +1168,7 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, pow
     selected_power_law_rows = parse_rule_table_selected_row(rule_table_rows_all=power_law_rows_all,
                                                             selected_row_indices=derived_virtual_selected_rows)
 
-    wl, wu = 0.95, 1.05
+    wl, wu = 0.9, 1.1
     ax_range = [vrg_innov_normalized.normalize_to_range[0] * wl, vrg_innov_normalized.normalize_to_range[1] * wu]
     for indx, power_law in enumerate(selected_power_law_rows):
         i, j, b, c = power_law
@@ -1180,11 +1180,14 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, pow
         if not normalize_flag:
             if indx == 0:
                 ax_range[0], ax_range[1] = wl * np.min(x_nd[:, i]), wu * np.max(x_nd[:, j])
+                if ax_range[1] < ax_range[0]:
+                    ax_range.reverse()
             elif np.min(x_nd[:, i]) < ax_range[0]:
                 ax_range[0] = wl * np.min(x_nd[:, i])
             elif np.max(x_nd[:, j]) > ax_range[1]:
                 ax_range[1] = wu * np.max(x_nd[:, j])
 
+        curve_plot_scaling_factor = 0
         for indx, power_law in enumerate(selected_power_law_rows):
             i, j, b, c = power_law
             i = int(i)
@@ -1193,7 +1196,11 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, pow
             c = float(c)
             ll_i, ul_i = ax_range
             ll_j, ul_j = ax_range
-            xj = np.linspace(ll_j, ul_j, int(100 * (ul_j - ll_j)))
+            # FIXME: Danger of division by zero error
+            curve_plot_points = np.linspace(ll_j - curve_plot_scaling_factor*abs(ll_j),
+                                            ul_j + curve_plot_scaling_factor*abs(ul_j),
+                                            int(100 * (ul_j - ll_j)))
+            xj = curve_plot_points
             xi = c / (xj ** b)
             # xj = xj[(xi >= ll_i) & (xi <= ul_i)]
             # xi = xi[(xi >= ll_i) & (xi <= ul_i)]
@@ -1255,46 +1262,43 @@ def update_power_law_plot(power_law_rows_all, derived_virtual_selected_rows, pow
             ]
 
     # Plot xi = xj line
-    xi = np.linspace(ax_range[0], ax_range[1], 100)
-    return_data['data'] += \
-        [
-            go.Scatter(
-                x=xi,
-                y=xi,
-                mode='lines',
-                name='x\u0302i'.translate(sub_ij) + ' = x\u0302j'.translate(sub_ij),
-                line=dict(color="gray", dash='dash'),
-                marker={
-                    'size': 10,
-                    'opacity': 0.5,
-                    'line': {'width': 0.5, 'color': 'white'}
-                },
-                showlegend=True
-            ),
+    show_xi_equal_xj_line = False
+    if show_xi_equal_xj_line:
+        xi = np.linspace(ax_range[0], ax_range[1], 100)
+        return_data['data'] += \
+            [
+                go.Scatter(
+                    x=xi,
+                    y=xi,
+                    mode='lines',
+                    name='x\u0302i'.translate(sub_ij) + ' = x\u0302j'.translate(sub_ij),
+                    line=dict(color="gray", dash='dash'),
+                    marker={
+                        'size': 10,
+                        'opacity': 0.5,
+                        'line': {'width': 0.5, 'color': 'white'}
+                    },
+                    showlegend=True
+                ),
         ]
 
+    axis_settings_common = {
+        'titlefont': {'size': 20},
+        'tickfont': {'size': 18},
+        'linecolor': 'black',
+        'zeroline': False,
+        'mirror': True,
+        'type': 'linear'
+    }
+    if normalize_flag:
+        axis_settings_common['range'] = ax_range
+    xaxis_settings = axis_settings_common.copy()
+    xaxis_settings['title'] = 'x\u0302i'.translate(sub_ij)
+    yaxis_settings = axis_settings_common.copy()
+    yaxis_settings['title'] = 'x\u0302j'.translate(sub_ij)
     return_data['layout'] = go.Layout(
-        xaxis={
-            'title': 'x\u0302i'.translate(sub_ij),
-            'titlefont': {'size': 20},
-            'tickfont': {'size': 18},
-            'linecolor': 'black',
-            'zeroline': False,
-            'mirror': True,
-            'type': 'linear',
-            'range': ax_range,
-        },
-        yaxis={
-            'title': 'x\u0302j'.translate(sub_ij),
-            'titlefont': {'size': 20},
-            'tickfont': {'size': 18},
-            'tickprefix': "   ",
-            'linecolor': 'black',
-            'zeroline': False,
-            'mirror': True,
-            'type': 'linear',
-            'range': ax_range,
-        },
+        xaxis=xaxis_settings,
+        yaxis=yaxis_settings,
         margin={'l': 50, 'b': 50, 't': 50, 'r': 50},
         width=500,
         legend=dict(orientation="v",
