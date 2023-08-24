@@ -47,7 +47,7 @@ def get_dash_rule_table(rule_df, table_id, hidden_columns=()):
                   'overflow': 'scroll'})
 
 
-def get_rule_table_div(html_id_prefix, rule_df, normalize_enabled=True):
+def get_rule_table_div(html_id_prefix, rule_df, normalize_enabled=False):
     """This function returns an HTML Div consisting of the rule tables and associated settings."""
     if html_id_prefix != '':
         html_id_prefix += '-'

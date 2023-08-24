@@ -38,16 +38,17 @@ class VRGInnovization:
 
         self.rel_type = rel_type
         self.power_law_normalized = True
-        if self.rel_type == POWER_LAW_STR:
+        if self.rel_type == POWER_LAW_STR or self.rel_type == POWER_LAW_CONSTANT_RULE_STR:
             if 'power_law_normalized' in kwargs:
                 self.power_law_normalized = kwargs['power_law_normalized']
             # First learn constant rules, then learn power laws for the rest. This is necessary since for
             # xi = constant, power law xi * xj^b = c will have b = 0. This will cause problems during
             # the linear regression used for learning the power laws
-            self.relation = [ConstantRule(n_var, kwargs['const_tol'],
-                                          normalization_flag=self.power_law_normalized),
-                             PowerLaw(n_var, evaluation_metric_name='r2',
+            self.relation = [PowerLaw(n_var, evaluation_metric_name='r2',
                                       normalization_flag=self.power_law_normalized)]
+            if self.rel_type == POWER_LAW_CONSTANT_RULE_STR:
+                self.relation = [ConstantRule(n_var, kwargs['const_tol'],
+                                              normalization_flag=self.power_law_normalized)] + self.relation
 
             # Add the repair agents. For power laws we use the ConstantRepairAgent and PowerLawRepairAgent.
             # PowerLawRepairAgent has sigma as a parameter.
@@ -186,7 +187,7 @@ class VRGInnovization:
                     edge_flag = False
 
             if edge_flag:
-                vrg.add_edges([edge], rank=[1], rel_type=[POWER_LAW])
+                vrg.add_edges([edge], rank=[1], rel_type=[POWER_LAW_CONSTANT_RULE])
 
     def evaluate_local_rule_performance(self, x_offspring, training_data, var_pair):
         """
@@ -212,8 +213,8 @@ class VRGInnovization:
                     c_training_mean = np.mean(c_training)
                     c_training_std = np.std(c_training)
 
-                    # For every offspring, calculate the evaluation_metric of the associated global rules based on the local
-                    # neighborhood
+                    # For every offspring, calculate the evaluation_metric of the associated global rules based on
+                    # the local neighborhood
                     for offspring_nn_ind in neigh_ind:
                         n_neighbors = len(neigh_ind)
                         c_neighbor = []  # Evaluates xi*xj^b for neighborhood training data
@@ -248,26 +249,31 @@ class VRGInnovization:
         training_data_normalized = x_min + (self.training_data - self.xl) / (self.xu - self.xl) * (x_max - x_min)
         with np.errstate(divide='ignore', invalid='ignore'):
             self.correlation = np.round(np.corrcoef(training_data_normalized, rowvar=False), decimals=2)
-        if self.rel_type == POWER_LAW_STR:
+        if self.rel_type == POWER_LAW_STR or self.rel_type == POWER_LAW_CONSTANT_RULE_STR:
             for grp_indx, curr_grp in enumerate(self.groups):
                 # For every group, ignore the variables not in the group
                 ignore_vars = np.setdiff1d(np.arange(self.n_var), curr_grp)
                 # Find constant relations first
-                if self.power_law_normalized:
-                    c, const_var_flag = self.relation[0].learn(training_data=training_data_normalized,
-                                                               ignore_vars=ignore_vars)
+                if self.relation == POWER_LAW_CONSTANT_RULE_STR:
+                    if self.power_law_normalized:
+                        c, const_var_flag = self.relation[0].learn(training_data=training_data_normalized,
+                                                                   ignore_vars=ignore_vars)
+                    else:
+                        c, const_var_flag = self.relation[0].learn(training_data=training_data,
+                                                                   ignore_vars=ignore_vars)
+                    const_var_indx = np.where(const_var_flag == 1)[0]
+                    power_law_rel_indx = 1
                 else:
-                    c, const_var_flag = self.relation[0].learn(training_data=training_data,
-                                                               ignore_vars=ignore_vars)
-                const_var_indx = np.where(const_var_flag == 1)[0]
+                    const_var_indx = []
+                    power_law_rel_indx = 0
 
                 # Learn power law afterwards ignoring the constant variables
                 if self.power_law_normalized:
-                    self.relation[1].learn(training_data=training_data_normalized,
-                                           ignore_vars=np.append(ignore_vars, const_var_indx))
+                    self.relation[power_law_rel_indx].learn(training_data=training_data_normalized,
+                                                            ignore_vars=np.append(ignore_vars, const_var_indx))
                 else:
-                    self.relation[1].learn(training_data=training_data,
-                                           ignore_vars=np.append(ignore_vars, const_var_indx))
+                    self.relation[power_law_rel_indx].learn(training_data=training_data,
+                                                            ignore_vars=np.append(ignore_vars, const_var_indx))
 
                 # Construct the VRG graph
                 self.vrg[grp_indx] = VariableRelationGraph(directed=False)
@@ -344,10 +350,10 @@ class VRGInnovization:
                 for edge in edge_list:
                     if np.where(rand_ordering == edge[0])[0] <= np.where(rand_ordering == edge[1])[0]:
                         directed_edge_list.append([edge[0], edge[1]])
-                        vrg_directed.add_edges([[edge[0], edge[1]]], rank=[1], rel_type=[POWER_LAW])
+                        vrg_directed.add_edges([[edge[0], edge[1]]], rank=[1], rel_type=[POWER_LAW_CONSTANT_RULE])
                     else:
                         directed_edge_list.append([edge[1], edge[0]])
-                        vrg_directed.add_edges([[edge[1], edge[0]]], rank=[1], rel_type=[POWER_LAW])
+                        vrg_directed.add_edges([[edge[1], edge[0]]], rank=[1], rel_type=[POWER_LAW_CONSTANT_RULE])
 
                 # print(f"Before reduction: VRG for group {grp_indx} has {len(vrg_directed.get_nodes())} nodes "
                 #       f"and {len(vrg_directed.get_edges())} edges")

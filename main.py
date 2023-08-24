@@ -13,6 +13,7 @@ import plotly.express as px
 from gui.layout import *
 from include.constants import *
 from innovization.vrg_innovization import VRGInnovization
+from innovization.constants import *
 from query import DemoQuery, QUERY, JSONQuery
 from utils.record_data import USER_INTERACT_DIR, POWER_LAW_RANK_FILE_PREFIX
 from utils.user_input import get_argparser
@@ -324,6 +325,50 @@ def select_all_power_law_rules(checked_settings, selected_rows, power_law_button
         return selected_rows, checked_settings
 
 
+def create_rule_table_row(rule_type, data_arr, innov_obj, var_i, var_j, normalize_flag, v_grp=0):
+    if rule_type == POWER_LAW:
+        b_arr, c_arr = innov_obj.relation[0].b, innov_obj.relation[0].c
+        if innov_obj.vrg[v_grp].has_edge(var_i, var_j):
+            power_law = [var_i, var_j, b_arr[var_i, var_j], c_arr[var_i, var_j]]
+            rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
+                = get_rule_compliance(x_nd=data_arr, var_grp=None, curr_gen=None,
+                                      power_law=[power_law],
+                                      power_law_max_error=0.01, const_tol=1e-2)
+            rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
+
+            if normalize_flag:
+                power_law_str = f"x\u0302{var_i} * x\u0302{var_j}".translate(sub) \
+                                + f"{np.round(b_arr[var_i, var_j], decimals=3)}".translate(sup) \
+                                + f" = {np.round(c_arr[var_i, var_j], decimals=3)}"
+            else:
+                power_law_str = f"x{var_i} * x{var_j}".translate(sub) \
+                                + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup) \
+                                + f" = {np.round(c_arr[var_i, var_j], decimals=2)}"
+            return [
+                power_law_str,
+                var_i,
+                var_j,
+                np.round(b_arr[var_i, var_j], decimals=3),
+                np.round(c_arr[var_i, var_j], decimals=3),
+                np.round(innov_obj.correlation[var_i, var_j], decimals=3),
+                np.round(rule_compliance, decimals=3),
+                np.round(innov_obj.relation[0].evaluation_metric[var_i, var_j], decimals=3)
+            ]
+        else:
+            return [
+                "N/A",
+                "N/A",
+                "N/A",
+                "N/A",
+                "N/A",
+                "N/A",
+                "N/A",
+                "N/A"
+            ]
+    else:
+        return None
+
+
 @app.callback(
     [
         Output('power-law-datatable-row-ids', 'data'),
@@ -466,13 +511,21 @@ def update_power_law_rule_table(selected_gen,
         rule_selection_parameters = {'criteria': rule_select_criteria,
                                      'relation': rule_select_criteria_relation,
                                      'value': rule_select_criteria_value}
+        const_rule_flag = False
         innov_original, innov_normalized = get_innovization(nearest_gen_value, data_arr, const_tol=const_tol,
                                                             rule_selection_parameters=rule_selection_parameters)
-
-        b_arr, c_arr = innov_original.relation[1].b, innov_original.relation[1].c
-        b_arr_normalized, c_arr_normalized = innov_normalized.relation[1].b, innov_normalized.relation[1].c
-        const_var_list = np.where(innov_original.relation[0].const_var_flag == 1)[0]
-        const_var_list_normalized = np.where(innov_normalized.relation[0].const_var_flag == 1)[0]
+        if innov_original.relation == POWER_LAW_CONSTANT_RULE_STR:
+            power_law_rel_indx = 1
+        else:
+            power_law_rel_indx = 0
+        b_arr, c_arr = innov_original.relation[power_law_rel_indx].b, innov_original.relation[power_law_rel_indx].c
+        b_arr_normalized = innov_normalized.relation[power_law_rel_indx].b
+        c_arr_normalized = innov_normalized.relation[power_law_rel_indx].c
+        if const_rule_flag:
+            const_var_list = np.where(innov_original.relation[0].const_var_flag == 1)[0]
+            const_var_list_normalized = np.where(innov_normalized.relation[0].const_var_flag == 1)[0]
+        else:
+            const_var_list, const_var_list_normalized = [], []
         print("Var grp = ", innov_normalized.groups[v_grp])
 
         power_law_list = []
@@ -503,50 +556,58 @@ def update_power_law_rule_table(selected_gen,
                     continue
 
                 # Only add a power law between two variables if a VRG edge exists
-                if innov_normalized.vrg[v_grp].has_edge(var_i, var_j) \
-                        and innov_original.vrg[v_grp].has_edge(var_i, var_j):
-                    # Show rules for normal power laws.
-                    power_law = [var_i, var_j, b_arr_normalized[var_i, var_j], c_arr_normalized[var_i, var_j]]
-                    rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
-                        = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value,
-                                              power_law=[power_law],
-                                              power_law_max_error=0.01, const_tol=const_tol)
-                    rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
-
-                    # Power law table for normalized rules
-                    power_law_str = f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)\
-                                    + f"{np.round(b_arr_normalized[var_i, var_j], decimals=3)}".translate(sup)\
-                                    + f" = {np.round(c_arr_normalized[var_i, var_j], decimals=3)}"
-                    power_law_list_normalized.append([
-                        power_law_str,
-                        var_i, var_j,
-                        np.round(b_arr_normalized[var_i, var_j], decimals=3),
-                        np.round(c_arr_normalized[var_i, var_j], decimals=3),
-                        np.round(innov_normalized.correlation[var_i, var_j], decimals=3),
-                        np.round(rule_compliance, decimals=3),
-                        np.round(innov_normalized.relation[1].evaluation_metric[var_i, var_j], decimals=3)
-                    ])
-
-                    # Power law table without normalization
-                    power_law = [var_i, var_j, b_arr[var_i, var_j], c_arr[var_i, var_j]]
-                    rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
-                        = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value,
-                                              power_law=[power_law],
-                                              power_law_max_error=0.01, const_tol=const_tol)
-                    rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
-
-                    power_law_str = f"x{var_i} * x{var_j}".translate(sub)\
-                                    + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup)\
-                                    + f" = {np.round(c_arr[var_i, var_j], decimals=2)}"
-                    power_law_list.append([
-                        power_law_str,
-                        var_i, var_j,
-                        np.round(b_arr[var_i, var_j], decimals=3),
-                        np.round(c_arr[var_i, var_j], decimals=3),
-                        np.round(innov_original.correlation[var_i, var_j], decimals=3),
-                        np.round(rule_compliance, decimals=3),
-                        np.round(innov_original.relation[1].evaluation_metric[var_i, var_j], decimals=3)
-                    ])
+                power_law_row = create_rule_table_row(
+                    POWER_LAW, x_nd, innov_original, var_i, var_j,
+                    normalize_flag=False, v_grp=v_grp)
+                power_law_row_normalized = create_rule_table_row(
+                    POWER_LAW, x_nd, innov_normalized, var_i, var_j,
+                    normalize_flag=True, v_grp=v_grp)
+                power_law_list.append(power_law_row)
+                power_law_list_normalized.append(power_law_row_normalized)
+                # if innov_normalized.vrg[v_grp].has_edge(var_i, var_j) \
+                #         and innov_original.vrg[v_grp].has_edge(var_i, var_j):
+                #     # Show rules for normal power laws.
+                #     power_law = [var_i, var_j, b_arr_normalized[var_i, var_j], c_arr_normalized[var_i, var_j]]
+                #     rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
+                #         = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value,
+                #                               power_law=[power_law],
+                #                               power_law_max_error=0.01, const_tol=const_tol)
+                #     rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
+                #
+                #     # Power law table for normalized rules
+                #     power_law_str = f"x\u0302{var_i} * x\u0302{var_j}".translate(sub)\
+                #                     + f"{np.round(b_arr_normalized[var_i, var_j], decimals=3)}".translate(sup)\
+                #                     + f" = {np.round(c_arr_normalized[var_i, var_j], decimals=3)}"
+                #     power_law_list_normalized.append([
+                #         power_law_str,
+                #         var_i, var_j,
+                #         np.round(b_arr_normalized[var_i, var_j], decimals=3),
+                #         np.round(c_arr_normalized[var_i, var_j], decimals=3),
+                #         np.round(innov_normalized.correlation[var_i, var_j], decimals=3),
+                #         np.round(rule_compliance, decimals=3),
+                #         np.round(innov_normalized.relation[1].evaluation_metric[var_i, var_j], decimals=3)
+                #     ])
+                #
+                #     # Power law table without normalization
+                #     power_law = [var_i, var_j, b_arr[var_i, var_j], c_arr[var_i, var_j]]
+                #     rule_compliance_id, rule_compliance_id_power, rule_compliance_id_ineq \
+                #         = get_rule_compliance(x_nd=x_nd, var_grp=None, curr_gen=nearest_gen_value,
+                #                               power_law=[power_law],
+                #                               power_law_max_error=0.01, const_tol=const_tol)
+                #     rule_compliance = len(rule_compliance_id) / data_arr.shape[0]
+                #
+                #     power_law_str = f"x{var_i} * x{var_j}".translate(sub)\
+                #                     + f"{np.round(b_arr[var_i, var_j], decimals=2)}".translate(sup)\
+                #                     + f" = {np.round(c_arr[var_i, var_j], decimals=2)}"
+                #     power_law_list.append([
+                #         power_law_str,
+                #         var_i, var_j,
+                #         np.round(b_arr[var_i, var_j], decimals=3),
+                #         np.round(c_arr[var_i, var_j], decimals=3),
+                #         np.round(innov_original.correlation[var_i, var_j], decimals=3),
+                #         np.round(rule_compliance, decimals=3),
+                #         np.round(innov_original.relation[1].evaluation_metric[var_i, var_j], decimals=3)
+                #     ])
 
         # Data frame to be used in the power law table on the display
         update_power_law_rule_table.power_law_df = pd.DataFrame(data=power_law_list,
@@ -597,7 +658,7 @@ def get_rule_compliance(x_nd, var_grp, curr_gen, power_law, power_law_max_error,
             i, j = law[:2]
             i = int(i)
             j = int(j)
-            compliance = vrg_innov_normalized.relation[1].check_compliance(x_test=x_sol,
+            compliance = vrg_innov_normalized.relation[0].check_compliance(x_test=x_sol,
                                                                            var_pair=np.array([[i, j]]),
                                                                            error_threshold=power_law_max_error,
                                                                            ignore_vars=ignore_vars)
@@ -845,7 +906,12 @@ def update_power_law_evolution_plot(plaw_var, current_gen, const_tol=1e-3):
             n_var = x_nd.shape[1]
             vrg_innov, vrg_innov_normalized = get_innovization(nearest_gen_value, x_nd, const_tol)
 
-            b, c = vrg_innov_normalized.relation[1].b[i, j], vrg_innov_normalized.relation[1].c[i, j]
+            if vrg_innov.relation == POWER_LAW_CONSTANT_RULE_STR:
+                power_law_rel_indx = 1
+            else:
+                power_law_rel_indx = 0
+            b = vrg_innov_normalized.relation[power_law_rel_indx].b[i, j]
+            c = vrg_innov_normalized.relation[power_law_rel_indx].c[i, j]
             ll_i, ul_i = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
             ll_j, ul_j = vrg_innov_normalized.normalize_to_range[0], vrg_innov_normalized.normalize_to_range[1]
 
