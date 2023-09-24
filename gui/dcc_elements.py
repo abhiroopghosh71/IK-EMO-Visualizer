@@ -46,4 +46,4 @@ def get_dash_rule_table(rule_df, table_id):
                 ]
             ),
         ], style={'font-size': '1.5em',
-                  'overflow': 'scroll'})
+                  'overflow': 'auto'}, className='ruleList')
