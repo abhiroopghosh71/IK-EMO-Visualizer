@@ -159,7 +159,7 @@ def construct_layout(args, gen_arr, query):
 
     sidebar = html.Div(
         [
-            html.H2("EMO-Viz", className='display-6 sidebar-heading', id="emoviz-sidebar-heading"),
+            html.H2("IK-EMO-Viz", className='display-6 sidebar-heading', id="emoviz-sidebar-heading"),
             html.Hr(),
             html.Div([
                 dbc.Nav(
@@ -171,6 +171,11 @@ def construct_layout(args, gen_arr, query):
                     vertical=True,
                     pills=True,
                 )], className='fs-4'),
+            html.Div([
+                html.Div(children='Version 0.2.0.0', className='fs-4'),
+                html.Div(children='Copyright \u00A9 2023 '),
+                html.A(children='Abhiroop Ghosh', href='https://abhiroopghosh.com', target='_blank')
+            ], className='fs-4', style={'position': 'absolute', 'bottom': '0'}),
         ],
         style=sidebar_style, className='text-wrap'
     )
@@ -381,15 +386,12 @@ def construct_layout(args, gen_arr, query):
                 dcc.Tab(label='Rule Plot', value='rule-plot', style=tab_style,
                         disabled=False, disabled_style=tab_disabled_style,
                         selected_style=tab_selected_style, className='fs-4', children=[
-                        html.Div([
-                            html.Div([dcc.Graph(id='power-law-graph',
-                                                hoverData={'points': [{'customdata': ''}]},
-                                                config=config)],
-                                     style={'overflow': 'scroll'}),
-                        ],
-                            style={'border': '1px solid #969696', 'border-radius': '5px',
-                                   'background-color': 'white',
-                                   'margin': '0px 20px 20px 20px'})
+                            html.Div([
+                                html.Div([dcc.Graph(id='power-law-graph',
+                                                    hoverData={'points': [{'customdata': ''}]},
+                                                    config=config)],
+                                         style={'overflow': 'scroll'}),
+                            ])
                         ]),
                 dcc.Tab(label='Rule Evolution', value='rule-evolution-plot', style=tab_style,
                         disabled=True, disabled_style=tab_disabled_style,
