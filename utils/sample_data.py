@@ -35,7 +35,7 @@ def generate_data(problem_name, output_path):
               'xl': problem.xl.tolist(), 'xu': problem.xu.tolist(),
               'obj_label': ['f1', 'f2'], 'ignore_vars': []
               }
-    with open(os.path.join(output_path, 'params.DAT'), 'w') as fp:
+    with open(os.path.join(output_path, 'params.json'), 'w') as fp:
         json.dump(params, fp, indent=4)
 
 

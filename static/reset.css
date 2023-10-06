@@ -1,7 +1,12 @@
+html {
+    background-color: #EDEDF0;
+}
+
 body
 {
     margin: 0;
-    background-color: #EBEDEF;
+    font-size: 100%;
+    background-color: #EDEDF0;
 }
 
 #header {
@@ -9,14 +14,87 @@ body
     top: 0;
     height: 20px;
     width: 100%;
-    background: green;
 }
+
 div {
     white-space: pre;
 }
 
+#emoviz-sidebar-heading {
+    font-weight: 500;
+    color: #495057;
+}
+
+.widget-header {
+    font-weight: 500;
+    color: #495057;
+    margin: 1rem;
+}
+
+.widget {
+    border: 1px hidden #969696;
+    border-radius: 5px;
+    background-color: white;
+    margin: 1rem;
+    padding: 2rem;
+    /* offset-x | offset-y | blur-radius | spread-radius | color */
+    box-shadow: 1px 1px 2px 2px rgba(0, 0, 0, .2);
+}
+
+.container {
+  display: flex; /* or inline-flex */
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.container-fluid {
+  display: flex; /* or inline-flex */
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.item1 {
+    flex: 1 1 28%;
+    box-sizing: border-box;
+    width: 100px;
+}
+
+.item2 {
+    flex: 2 1 30%;
+    box-sizing: border-box;
+}
+
+.item2-no-shrink {
+    flex: 2 0 30%;
+    box-sizing: border-box;
+}
+
+.item3 {
+    flex: 3 1 40%;
+    box-sizing: border-box;
+}
+
+.item4 {
+    flex: 4 1 50%;
+    box-sizing: border-box;
+}
+
 .row {
   display: flex; /* equal height of the children */
+  background-color: #EDEDF0;
+}
+
+.ruleList {
+    border: 1px hidden #969696;
+    background-color: white;
+    overflow: scroll;
+}
+
+.ruleListSettings {
+    display: inline-block;
+    margin: 0.5rem 1rem 0.5rem 0.5rem;
 }
 
 .col {
@@ -33,6 +111,15 @@ div {
 }
 .col-left {
   flex-basis: 25%;
+    overflow: auto;
+  -webkit-flex-direction: row;
+  -moz-flex-direction: row;
+  -ms-flex-direction: row;
+  -o-flex-direction: row;
+    flex-direction: row;
+}
+.sidebar {
+  flex-basis: 15%;
     overflow: auto;
   -webkit-flex-direction: row;
   -moz-flex-direction: row;
@@ -72,16 +159,6 @@ H2.widgetTitle
 {
     width: 150px;
 }
-
-.ruleList
-{
-    border: 1px solid #969696;
-    border-radius: 5px;
-    background-color: white;
-    padding: 20px 20px 20px 20px;
-    overflow: scroll;
-}
-
 *:before, *:after {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
